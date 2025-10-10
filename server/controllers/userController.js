@@ -1,9 +1,12 @@
 const { User, Post, Follow } = require('../models/associations');
 const { Op } = require('sequelize');
 
+// controllers/userController.js - УБЕДИМСЯ ЧТО АВАТАР ВКЛЮЧАЕТСЯ
 exports.getProfile = async (req, res) => {
     try {
         const { userId } = req.params;
+
+        console.log('🔄 Getting profile for user:', userId);
 
         const user = await User.findByPk(userId, {
             attributes: { exclude: ['password'] },
@@ -16,13 +19,13 @@ exports.getProfile = async (req, res) => {
                 {
                     model: User,
                     as: 'Followers',
-                    attributes: ['id', 'username', 'name', 'avatar'],
+                    attributes: ['id', 'username', 'name', 'avatar', 'isOnline'], // 🔥 ДОБАВЛЯЕМ avatar
                     through: { attributes: [] }
                 },
                 {
                     model: User,
                     as: 'Following',
-                    attributes: ['id', 'username', 'name', 'avatar'],
+                    attributes: ['id', 'username', 'name', 'avatar', 'isOnline'], // 🔥 ДОБАВЛЯЕМ avatar
                     through: { attributes: [] }
                 }
             ]
@@ -31,6 +34,8 @@ exports.getProfile = async (req, res) => {
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
+
+        console.log('✅ User profile loaded with avatar:', user.avatar); // 🔥 ЛОГ АВАТАРА
 
         res.json({ user });
     } catch (error) {
@@ -129,12 +134,13 @@ exports.unfollowUser = async (req, res) => {
     }
 };
 
+// controllers/userController.js - ДОБАВЛЯЕМ ОБНОВЛЕНИЕ АВАТАРА
 exports.updateProfile = async (req, res) => {
     try {
         const userId = req.userId;
-        const { name, username, bio } = req.body;
+        const { name, username, bio, avatar } = req.body; // 🔥 ДОБАВЛЯЕМ avatar
 
-        console.log('📝 Updating profile for user:', userId, { name, username, bio });
+        console.log('📝 Updating profile for user:', userId, { name, username, bio, avatar });
 
         const user = await User.findByPk(userId);
         if (!user) {
@@ -153,7 +159,8 @@ exports.updateProfile = async (req, res) => {
         await user.update({
             name: name || user.name,
             username: username || user.username,
-            bio: bio || user.bio
+            bio: bio || user.bio,
+            avatar: avatar || user.avatar // 🔥 ДОБАВЛЯЕМ АВАТАР
         });
 
         console.log('✅ Profile updated successfully');
@@ -165,7 +172,7 @@ exports.updateProfile = async (req, res) => {
                 email: user.email,
                 name: user.name,
                 bio: user.bio,
-                avatar: user.avatar
+                avatar: user.avatar // 🔥 ВОЗВРАЩАЕМ АВАТАР
             }
         });
     } catch (error) {

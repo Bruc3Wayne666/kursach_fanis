@@ -1,57 +1,82 @@
-const { Message, User } = require('../models/associations');
+// controllers/messageController.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
+const { Message, User, Conversation, ConversationMember } = require('../models/associations');
 const { Op } = require('sequelize');
 
 exports.sendMessage = async (req, res) => {
     try {
-        const { receiverId, content, messageType = 'text' } = req.body;
+        const { receiverId, content, messageType = 'text', conversationId } = req.body;
         const senderId = req.userId;
 
-        if (!receiverId || !content) {
-            return res.status(400).json({ error: 'Receiver ID and content are required' });
+        console.log('📤 Sending message:', { receiverId, content, messageType, conversationId, senderId });
+
+        if (!content) {
+            return res.status(400).json({ error: 'Content is required' });
         }
 
-        const receiver = await User.findByPk(receiverId);
-        if (!receiver) {
-            return res.status(404).json({ error: 'Receiver not found' });
+        let message;
+
+        if (conversationId) {
+            // Сообщение в беседу
+            const isMember = await ConversationMember.findOne({
+                where: { conversationId, userId: senderId }
+            });
+
+            if (!isMember) {
+                return res.status(403).json({ error: 'Not a member of this conversation' });
+            }
+
+            message = await Message.create({
+                senderId,
+                conversationId,
+                content,
+                messageType,
+                isRead: false,
+                receiverId: null // Для бесед receiverId = null
+            });
+        } else {
+            // Личное сообщение
+            if (!receiverId) {
+                return res.status(400).json({ error: 'Receiver ID is required for personal messages' });
+            }
+
+            // Проверяем существование получателя
+            const receiver = await User.findByPk(receiverId);
+            if (!receiver) {
+                console.log('❌ Receiver not found:', receiverId);
+                return res.status(404).json({ error: 'Receiver not found' });
+            }
+
+            console.log('✅ Receiver found:', receiver.id);
+
+            message = await Message.create({
+                senderId,
+                receiverId,
+                content,
+                messageType,
+                isRead: false,
+                conversationId: null // Для личных сообщений conversationId = null
+            });
+
+            console.log('✅ Message created:', message.id);
         }
 
-        const message = await Message.create({
-            senderId,
-            receiverId,
-            content,
-            messageType,
-            isRead: false
+        // Загружаем сообщение с отправителем
+        const messageWithSender = await Message.findByPk(message.id, {
+            include: [{
+                model: User,
+                as: 'Sender',
+                attributes: ['id', 'username', 'name', 'avatar']
+            }]
         });
 
-        const messageWithUsers = await Message.findByPk(message.id, {
-            include: [
-                {
-                    model: User,
-                    as: 'Sender',
-                    attributes: ['id', 'username', 'name', 'avatar']
-                },
-                {
-                    model: User,
-                    as: 'Receiver',
-                    attributes: ['id', 'username', 'name', 'avatar']
-                }
-            ]
-        });
+        console.log('✅ Message with sender loaded');
 
-        const io = req.app.get('io');
-        const receiverSocketId = Array.from(io.sockets.sockets.values())
-            .find(socket => socket.userId === receiverId)?.id;
+        res.status(201).json({ message: messageWithSender });
 
-        if (receiverSocketId) {
-            io.to(receiverSocketId).emit('new_message', messageWithUsers);
-        }
-
-        io.to(req.socketId).emit('message_sent', messageWithUsers);
-
-        res.status(201).json({ message: messageWithUsers });
     } catch (error) {
-        console.error('Send message error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        console.error('❌ Send message error:', error);
+        console.error('❌ Error details:', error.message);
+        res.status(500).json({ error: 'Internal server error: ' + error.message });
     }
 };
 
@@ -61,6 +86,8 @@ exports.getChatHistory = async (req, res) => {
         const currentUserId = req.userId;
         const { page = 1, limit = 50 } = req.query;
 
+        console.log('🔄 Getting chat history with:', otherUserId, 'for user:', currentUserId);
+
         const offset = (page - 1) * limit;
 
         const messages = await Message.findAll({
@@ -68,37 +95,271 @@ exports.getChatHistory = async (req, res) => {
                 [Op.or]: [
                     {
                         senderId: currentUserId,
-                        receiverId: otherUserId
+                        receiverId: otherUserId,
+                        conversationId: null // Только личные сообщения
                     },
                     {
                         senderId: otherUserId,
-                        receiverId: currentUserId
+                        receiverId: currentUserId,
+                        conversationId: null // Только личные сообщения
                     }
                 ]
             },
-            include: [
-                {
-                    model: User,
-                    as: 'Sender',
-                    attributes: ['id', 'username', 'name', 'avatar']
-                },
-                {
-                    model: User,
-                    as: 'Receiver',
-                    attributes: ['id', 'username', 'name', 'avatar']
-                }
-            ],
+            include: [{
+                model: User,
+                as: 'Sender',
+                attributes: ['id', 'username', 'name', 'avatar']
+            }],
             order: [['createdAt', 'DESC']],
             limit: parseInt(limit),
             offset: offset
         });
 
+        console.log(`✅ Found ${messages.length} messages`);
+
+        // Помечаем как прочитанные
         await Message.update(
             { isRead: true },
             {
                 where: {
                     senderId: otherUserId,
                     receiverId: currentUserId,
+                    isRead: false,
+                    conversationId: null
+                }
+            }
+        );
+
+        res.json({ messages: messages.reverse() });
+
+    } catch (error) {
+        console.error('❌ Get chat history error:', error);
+        res.status(500).json({ error: 'Internal server error: ' + error.message });
+    }
+};
+
+// controllers/messageController.js - ИСПРАВЛЯЕМ getChats С ПРАВИЛЬНЫМИ АССОЦИАЦИЯМИ
+exports.getChats = async (req, res) => {
+    try {
+        const currentUserId = req.userId;
+        console.log('🔄 Getting chats for user:', currentUserId);
+
+        // ЛИЧНЫЕ ЧАТЫ
+        const personalMessages = await Message.findAll({
+            where: {
+                [Op.or]: [
+                    { senderId: currentUserId },
+                    { receiverId: currentUserId }
+                ],
+                conversationId: null
+            },
+            attributes: ['senderId', 'receiverId'],
+            raw: true
+        });
+
+        console.log('📨 Personal messages found:', personalMessages.length);
+
+        const partnerIds = [...new Set(
+            personalMessages.flatMap(chat =>
+                [chat.senderId, chat.receiverId]
+            ).filter(id => id && id !== currentUserId)
+        )];
+
+        console.log('👥 Partner IDs for personal chats:', partnerIds);
+
+        const personalChats = await Promise.all(
+            partnerIds.map(async (partnerId) => {
+                try {
+                    const partner = await User.findByPk(partnerId, {
+                        attributes: ['id', 'username', 'name', 'avatar', 'isOnline']
+                    });
+
+                    if (!partner) {
+                        console.log('❌ Partner not found:', partnerId);
+                        return null;
+                    }
+
+                    const lastMessage = await Message.findOne({
+                        where: {
+                            [Op.or]: [
+                                {
+                                    senderId: currentUserId,
+                                    receiverId: partnerId,
+                                    conversationId: null
+                                },
+                                {
+                                    senderId: partnerId,
+                                    receiverId: currentUserId,
+                                    conversationId: null
+                                }
+                            ]
+                        },
+                        order: [['createdAt', 'DESC']],
+                        include: [{
+                            model: User,
+                            as: 'Sender',
+                            attributes: ['id', 'username']
+                        }]
+                    });
+
+                    const unreadCount = await Message.count({
+                        where: {
+                            senderId: partnerId,
+                            receiverId: currentUserId,
+                            conversationId: null,
+                            isRead: false
+                        }
+                    });
+
+                    return {
+                        type: 'personal',
+                        partner,
+                        lastMessage,
+                        unreadCount,
+                        updatedAt: lastMessage?.createdAt || new Date()
+                    };
+                } catch (error) {
+                    console.error('❌ Error loading chat details for partner:', partnerId, error);
+                    return null;
+                }
+            })
+        );
+
+        // 🔥 БЕСЕДЫ - ИСПОЛЬЗУЕМ ПРАВИЛЬНЫЕ АССОЦИАЦИИ
+        console.log('🔄 Getting conversations for user:', currentUserId);
+
+        const userConversations = await ConversationMember.findAll({
+            where: { userId: currentUserId },
+            include: [{
+                model: Conversation,
+                include: [{
+                    model: Message,
+                    as: 'Messages', // 🔥 ТЕПЕРЬ ЭТО ИМЯ СУЩЕСТВУЕТ
+                    limit: 1,
+                    order: [['createdAt', 'DESC']],
+                    include: [{
+                        model: User,
+                        as: 'Sender',
+                        attributes: ['id', 'name']
+                    }]
+                }, {
+                    model: User,
+                    as: 'Members', // 🔥 ТЕПЕРЬ ЭТО ИМЯ СУЩЕСТВУЕТ
+                    attributes: ['id', 'username', 'name', 'avatar', 'isOnline'],
+                    through: { attributes: ['role'] }
+                }]
+            }]
+        });
+
+        console.log('👥 User conversations found:', userConversations.length);
+
+        const conversationChats = await Promise.all(
+            userConversations.map(async (member) => {
+                try {
+                    const conversation = member.Conversation;
+                    console.log('💬 Processing conversation:', conversation.id, conversation.name);
+
+                    const lastMessage = conversation.Messages?.[0] || null;
+                    console.log('📨 Last message in conversation:', lastMessage?.content);
+
+                    const unreadCount = await Message.count({
+                        where: {
+                            conversationId: conversation.id,
+                            senderId: { [Op.ne]: currentUserId },
+                            isRead: false
+                        }
+                    });
+
+                    return {
+                        type: 'group',
+                        conversation,
+                        lastMessage,
+                        unreadCount,
+                        updatedAt: lastMessage?.createdAt || conversation.createdAt
+                    };
+                } catch (error) {
+                    console.error('❌ Error processing conversation member:', error);
+                    return null;
+                }
+            })
+        );
+
+        console.log('✅ Conversation chats processed:', conversationChats.length);
+
+        // Фильтруем null значения
+        const validPersonalChats = personalChats.filter(chat => chat !== null);
+        const validConversationChats = conversationChats.filter(chat => chat !== null);
+
+        // Объединяем и сортируем
+        const allChats = [...validPersonalChats, ...validConversationChats];
+        allChats.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+
+        console.log(`✅ Total chats: ${allChats.length} (${validPersonalChats.length} personal, ${validConversationChats.length} groups)`);
+
+        // 🔥 ЛОГИРУЕМ ВСЕ ЧАТЫ ДЛЯ ДЕБАГА
+        allChats.forEach((chat, index) => {
+            if (chat.type === 'group') {
+                console.log(`🏷️ Group chat ${index + 1}:`, {
+                    id: chat.conversation.id,
+                    name: chat.conversation.name,
+                    members: chat.conversation.Members?.length,
+                    lastMessage: chat.lastMessage?.content
+                });
+            }
+        });
+
+        res.json({ chats: allChats });
+
+    } catch (error) {
+        console.error('❌ Get chats error:', error);
+        console.error('❌ Error stack:', error.stack);
+        res.status(500).json({
+            error: 'Internal server error: ' + error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
+    }
+};
+
+exports.getConversationMessages = async (req, res) => {
+    try {
+        const { conversationId } = req.params;
+        const currentUserId = req.userId;
+        const { page = 1, limit = 50 } = req.query;
+
+        console.log('🔄 Getting conversation messages:', conversationId);
+
+        // Проверяем что пользователь участник беседы
+        const isMember = await ConversationMember.findOne({
+            where: { conversationId, userId: currentUserId }
+        });
+
+        if (!isMember) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+
+        const offset = (page - 1) * limit;
+
+        const messages = await Message.findAll({
+            where: { conversationId },
+            include: [{
+                model: User,
+                as: 'Sender',
+                attributes: ['id', 'username', 'name', 'avatar']
+            }],
+            order: [['createdAt', 'DESC']],
+            limit: parseInt(limit),
+            offset: offset
+        });
+
+        console.log(`✅ Found ${messages.length} conversation messages`);
+
+        // Помечаем как прочитанные
+        await Message.update(
+            { isRead: true },
+            {
+                where: {
+                    conversationId,
+                    senderId: { [Op.ne]: currentUserId },
                     isRead: false
                 }
             }
@@ -106,87 +367,12 @@ exports.getChatHistory = async (req, res) => {
 
         res.json({ messages: messages.reverse() });
     } catch (error) {
-        console.error('Get chat history error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        console.error('❌ Get conversation messages error:', error);
+        res.status(500).json({ error: 'Internal server error: ' + error.message });
     }
 };
 
-exports.getChats = async (req, res) => {
-    try {
-        const currentUserId = req.userId;
-
-        const chatPartners = await Message.findAll({
-            where: {
-                [Op.or]: [
-                    { senderId: currentUserId },
-                    { receiverId: currentUserId }
-                ]
-            },
-            attributes: ['senderId', 'receiverId'],
-            raw: true
-        });
-
-        const partnerIds = [...new Set(
-            chatPartners.flatMap(chat =>
-                [chat.senderId, chat.receiverId]
-            ).filter(id => id !== currentUserId)
-        )];
-
-        const chats = await Promise.all(
-            partnerIds.map(async (partnerId) => {
-                const partner = await User.findByPk(partnerId, {
-                    attributes: ['id', 'username', 'name', 'avatar', 'isOnline']
-                });
-
-                const lastMessage = await Message.findOne({
-                    where: {
-                        [Op.or]: [
-                            {
-                                senderId: currentUserId,
-                                receiverId: partnerId
-                            },
-                            {
-                                senderId: partnerId,
-                                receiverId: currentUserId
-                            }
-                        ]
-                    },
-                    order: [['createdAt', 'DESC']],
-                    include: [
-                        {
-                            model: User,
-                            as: 'Sender',
-                            attributes: ['id', 'username']
-                        }
-                    ]
-                });
-
-                const unreadCount = await Message.count({
-                    where: {
-                        senderId: partnerId,
-                        receiverId: currentUserId,
-                        isRead: false
-                    }
-                });
-
-                return {
-                    partner,
-                    lastMessage,
-                    unreadCount,
-                    updatedAt: lastMessage?.createdAt || new Date()
-                };
-            })
-        );
-
-        chats.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-
-        res.json({ chats });
-    } catch (error) {
-        console.error('Get chats error:', error);
-        res.status(500).json({ error: 'Internal server error' });
-    }
-};
-
+// Остальные методы остаются без изменений
 exports.markAsRead = async (req, res) => {
     try {
         const { messageIds } = req.body;

@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="dd5cd612-e12a-4b20-822d-8fb1628280b6" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/client - Copy/src/components/CreatePostModal.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/src/components/PostCard.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/src/navigation/AppNavigator.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/src/screens/CommentsScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/src/screens/EditProfileScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/src/screens/FeedScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/src/screens/FollowListScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/src/screens/FollowersScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/src/screens/LoginScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/src/screens/MessagesScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/src/screens/ProfileScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/src/screens/RegisterScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/src/screens/SearchScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/src/services/api.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/src/store/index.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/src/store/slices/authSlice.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/src/store/slices/messagesSlice.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/src/store/slices/postsSlice.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/src/store/slices/usersSlice.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/src/themes/dark.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/src/utils/authLoader.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/src/utils/constants.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/src/utils/storage.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/src/components/ChatItem.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/src/components/MessageBubble.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/src/components/UserSearchModal.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/src/screens/ChatScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/src/screens/ConversationInfoScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/src/screens/CreateConversationScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/src/screens/FriendRequestScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/src/screens/FriendsScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/src/screens/UserProfileScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/src/services/socket.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/server/controllers/conversationController.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/server/controllers/friendshipController.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/server/models/Conversation.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/server/models/ConversationMember.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/server/models/Friendship.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/server/routes/conversations.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/server/routes/friends.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/kursach_fanis.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/kursach_fanis.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client - Copy/App.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/client - Copy/App.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client - Copy/android/app/build.gradle" beforeDir="false" afterPath="$PROJECT_DIR$/client - Copy/android/app/build.gradle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client - Copy/android/app/src/main/AndroidManifest.xml" beforeDir="false" afterPath="$PROJECT_DIR$/client - Copy/android/app/src/main/AndroidManifest.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client - Copy/android/settings.gradle" beforeDir="false" afterPath="$PROJECT_DIR$/client - Copy/android/settings.gradle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client - Copy/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/client - Copy/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client - Copy/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/client - Copy/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/android/app/build.gradle" beforeDir="false" afterPath="$PROJECT_DIR$/client/android/app/build.gradle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/android/app/src/main/AndroidManifest.xml" beforeDir="false" afterPath="$PROJECT_DIR$/client/android/app/src/main/AndroidManifest.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/client/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/client/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/components/CreatePostModal.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/components/CreatePostModal.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/components/PostCard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/components/PostCard.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/navigation/AppNavigator.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/navigation/AppNavigator.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/screens/EditProfileScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/screens/EditProfileScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/screens/FeedScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/screens/FeedScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/screens/FollowListScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/screens/FollowListScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/screens/MessagesScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/screens/MessagesScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/screens/ProfileScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/screens/ProfileScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/screens/SearchScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/screens/SearchScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/services/api.ts" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/services/api.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/store/slices/authSlice.ts" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/store/slices/authSlice.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/store/slices/messagesSlice.ts" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/store/slices/messagesSlice.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/store/slices/usersSlice.ts" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/store/slices/usersSlice.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/utils/authLoader.ts" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/utils/authLoader.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/utils/storage.ts" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/utils/storage.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/controllers/messageController.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/controllers/messageController.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/controllers/userController.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/controllers/userController.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/models/Message.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/models/Message.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/models/associations.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/models/associations.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/routes/messages.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/routes/messages.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/server.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/server.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/sockets/socket.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/sockets/socket.js" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="JSX File" />
+        <option value="JavaScript File" />
+        <option value="TypeScript JSX File" />
+        <option value="TypeScript File" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/client" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;Bruc3Wayne666&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;git@github.com:Bruc3Wayne666/kursach_fanis.git&quot;,
+    &quot;accountId&quot;: &quot;aa1b665d-3888-4d47-abe5-c67c8ef8109c&quot;
+  }
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 5
+}</component>
+  <component name="ProjectId" id="33TKXY3Zlly9OmLF4Sfv9Wwg1NC" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "C:/Users/mm/WebstormProjects/kursach_fanis/temp",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.lookFeel",
+    "ts.external.directory.path": "C:\\Users\\mm\\WebstormProjects\\kursach_fanis\\client\\node_modules\\typescript\\lib",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\mm\WebstormProjects\kursach_fanis\temp" />
+      <recent name="C:\Users\mm\WebstormProjects\kursach_fanis\client" />
+      <recent name="C:\Users\mm\WebstormProjects\kursach_fanis\server" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\mm\WebstormProjects\kursach_fanis\client\src" />
+      <recent name="C:\Users\mm\WebstormProjects\kursach_fanis\server\modelss" />
+      <recent name="C:\Users\mm\WebstormProjects\kursach_fanis\server" />
+      <recent name="C:\Users\mm\WebstormProjects\kursach_fanis\server\src\routes" />
+    </key>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-e03c56caf84a-JavaScript-WS-252.23892.411" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="dd5cd612-e12a-4b20-822d-8fb1628280b6" name="Changes" comment="" />
+      <created>1759335661693</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1759335661693</updated>
+      <workItem from="1759335662835" duration="7976000" />
+      <workItem from="1759482999145" duration="3000" />
+      <workItem from="1760037981973" duration="24744000" />
+      <workItem from="1760063004121" duration="65000" />
+      <workItem from="1760063354720" duration="393000" />
+      <workItem from="1760063866365" duration="204000" />
+      <workItem from="1760108444508" duration="10801000" />
+      <workItem from="1760120478576" duration="18871000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+</project>

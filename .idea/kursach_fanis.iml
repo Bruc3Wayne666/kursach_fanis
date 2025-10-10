@@ -5,6 +5,16 @@
       <excludeFolder url="file://$MODULE_DIR$/.tmp" />
       <excludeFolder url="file://$MODULE_DIR$/temp" />
       <excludeFolder url="file://$MODULE_DIR$/tmp" />
+      <excludeFolder url="file://$MODULE_DIR$/client - Copy/android/.gradle" />
+      <excludeFolder url="file://$MODULE_DIR$/client - Copy/android/.kotlin" />
+      <excludeFolder url="file://$MODULE_DIR$/client - Copy/android/app/.cxx" />
+      <excludeFolder url="file://$MODULE_DIR$/client - Copy/android/app/build" />
+      <excludeFolder url="file://$MODULE_DIR$/client - Copy/android/build" />
+      <excludeFolder url="file://$MODULE_DIR$/client/android/.gradle" />
+      <excludeFolder url="file://$MODULE_DIR$/client/android/.kotlin" />
+      <excludeFolder url="file://$MODULE_DIR$/client/android/app/.cxx" />
+      <excludeFolder url="file://$MODULE_DIR$/client/android/app/build" />
+      <excludeFolder url="file://$MODULE_DIR$/client/android/build" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
