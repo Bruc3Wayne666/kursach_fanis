@@ -6,3 +6,23 @@
 # Datasource local storage ignored files
 /dataSources/
 /dataSources.local.xml
+
+
+# Node modules
+node_modules/
+*/node_modules/*
+*/**/node_modules/*
+
+# Логи
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Кэш
+.npm
+.yarn/cache
