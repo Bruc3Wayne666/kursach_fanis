@@ -1,51 +1,115 @@
-// src/screens/ProfileScreen.tsx - ИСПРАВЛЯЕМ ОТОБРАЖЕНИЕ АВАТАРА
-import React, { useEffect, useState } from 'react';
+// src/screens/ProfileScreen.tsx - ИСПРАВЛЕННЫЙ КОД ДЛЯ ЛАЙКОВ
+import React, { useEffect, useState, useRef } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     TouchableOpacity,
     ActivityIndicator,
-    Image
+    Image,
+    FlatList,
+    RefreshControl,
+    Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSelector, useDispatch } from 'react-redux';
+import { useIsFocused } from '@react-navigation/native';
 import { darkTheme } from '../themes/dark';
 import { api } from '../services/api';
 import { logout } from '../store/slices/authSlice';
+import { createPost } from '../store/slices/postsSlice';
+import PostCard from '../components/PostCard';
+import CreatePostModal from '../components/CreatePostModal';
+import { likePost, unlikePost, toggleLike } from '../store/slices/postsSlice';
 
-export default function ProfileScreen({ navigation }: any) {
+
+export default function ProfileScreen({ navigation, route }: any) {
     const user = useSelector((state: any) => state.auth.user);
     const dispatch = useDispatch();
+    const isFocused = useIsFocused();
+
     const [stats, setStats] = useState({
         followers: 0,
         following: 0,
         posts: 0
     });
     const [loading, setLoading] = useState(true);
-    const [refreshCount, setRefreshCount] = useState(0);
+    const [refreshing, setRefreshing] = useState(false);
+    const [userPosts, setUserPosts] = useState<any[]>([]);
+    const [postsLoading, setPostsLoading] = useState(false);
+    const [isCreatePostModalVisible, setIsCreatePostModalVisible] = useState(false);
+
+    // Polling для real-time обновлений
+    const pollingRef = useRef<NodeJS.Timeout | null>(null);
+    const isMountedRef = useRef(true);
+
+    // Получаем userId из параметров или используем текущего пользователя
+    const targetUserId = route.params?.userId || user?.id;
+    const isOwnProfile = targetUserId === user?.id;
 
     useEffect(() => {
-        if (user) {
-            loadStats();
-        }
-    }, [user, refreshCount]);
+        isMountedRef.current = true;
 
-    const loadStats = async () => {
-        if (!user) return;
+        if (isFocused && targetUserId) {
+            loadProfileData();
+            loadUserPosts();
+            startPolling();
+        } else {
+            stopPolling();
+        }
+
+        return () => {
+            isMountedRef.current = false;
+            stopPolling();
+        };
+    }, [isFocused, targetUserId]);
+
+    const handleComment = (postId: string) => {
+        navigation.navigate('Comments', {
+            postId,
+            onCommentAdded: () => {
+                setTimeout(() => {
+                    loadUserPosts();
+                }, 500);
+            }
+        });
+    };
+
+    // Polling для real-time обновлений
+    const startPolling = () => {
+        if (pollingRef.current) return;
+
+        console.log('🔄 Starting polling for profile...');
+        pollingRef.current = setInterval(() => {
+            if (isMountedRef.current && !isCreatePostModalVisible) {
+                loadUserPosts();
+                loadProfileData();
+            }
+        }, 2000);
+    };
+
+    const stopPolling = () => {
+        if (pollingRef.current) {
+            console.log('🛑 Stopping polling for profile...');
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+        }
+    };
+
+    const loadProfileData = async () => {
+        if (!targetUserId) return;
 
         try {
-            const [followersResponse, followingResponse, postsResponse] = await Promise.all([
-                api.get(`/users/${user.id}/followers`).catch(() => ({ data: { followers: [] } })),
-                api.get(`/users/${user.id}/following`).catch(() => ({ data: { following: [] } })),
-                api.get(`/posts/user/${user.id}?limit=100`).catch(() => ({ data: { posts: [] } }))
+            const [followersResponse, followingResponse] = await Promise.all([
+                api.get(`/users/${targetUserId}/followers`).catch(() => ({ data: { followers: [] } })),
+                api.get(`/users/${targetUserId}/following`).catch(() => ({ data: { following: [] } }))
             ]);
 
-            setStats({
+            setStats(prev => ({
+                ...prev,
                 followers: followersResponse.data.followers?.length || 0,
                 following: followingResponse.data.following?.length || 0,
-                posts: postsResponse.data.posts?.length || 0
-            });
+            }));
         } catch (error) {
             console.error('Error loading stats:', error);
         } finally {
@@ -53,7 +117,91 @@ export default function ProfileScreen({ navigation }: any) {
         }
     };
 
-    // 🔥 ФУНКЦИЯ ДЛЯ ПОЛУЧЕНИЯ URL АВАТАРА
+    const loadUserPosts = async () => {
+        if (!targetUserId) return;
+
+        try {
+            const response = await api.get(`/posts/user/${targetUserId}?limit=50`);
+            const postsWithUser = response.data.posts.map((post: any) => ({
+                ...post,
+                User: user
+            }));
+
+            setUserPosts(postsWithUser);
+            setStats(prev => ({
+                ...prev,
+                posts: postsWithUser.length
+            }));
+        } catch (error) {
+            console.error('Error loading user posts:', error);
+        }
+    };
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        await Promise.all([
+            loadProfileData(),
+            loadUserPosts()
+        ]);
+        setRefreshing(false);
+    };
+
+    const handleCreatePost = async (title: string, content: string, image?: string) => {
+        const postContent = title ? `${title}\n\n${content}` : content;
+
+        console.log('📤 Создание поста из профиля:', {
+            content: postContent,
+            hasImage: !!image
+        });
+
+        try {
+            await dispatch(createPost({ content: postContent, image }) as any);
+            setIsCreatePostModalVisible(false);
+
+            setTimeout(() => {
+                loadUserPosts();
+            }, 1000);
+
+            Alert.alert('Успех', 'Пост опубликован!');
+        } catch (error) {
+            console.error('Error creating post:', error);
+            Alert.alert('Ошибка', 'Не удалось создать пост');
+        }
+    };
+
+    // 🔥 ПРОСТАЯ ЛОГИКА ЛАЙКОВ - КАК В UserProfileScreen
+    // В ProfileScreen.tsx - ТАК ЖЕ КАК В ФИДЕ
+
+// 🔥 ТАК ЖЕ КАК В ФИДЕ
+    // В ProfileScreen.tsx - ТАКАЯ ЖЕ ФУНКЦИЯ
+    // В ProfileScreen.tsx - ТАКАЯ ЖЕ ФУНКЦИЯ
+    const handleLike = (postId: string, isCurrentlyLiked: boolean) => {
+        // Сначала мгновенное обновление UI
+        updateLocalPostLike(postId, !isCurrentlyLiked);
+
+        // Потом API запрос
+        if (isCurrentlyLiked) {
+            dispatch(unlikePost(postId) as any);
+        } else {
+            dispatch(likePost(postId) as any);
+        }
+    };
+
+    const updateLocalPostLike = (postId: string, isLiked: boolean) => {
+        setUserPosts(prevPosts =>
+            prevPosts.map(post => {
+                if (post.id === postId) {
+                    return {
+                        ...post,
+                        isLiked: isLiked,
+                        likesCount: isLiked ? (post.likesCount + 1) : Math.max(0, post.likesCount - 1)
+                    };
+                }
+                return post;
+            })
+        );
+    };
+
     const getAvatarUrl = (avatarPath: string | null) => {
         if (!avatarPath) return 'https://via.placeholder.com/100';
 
@@ -66,7 +214,7 @@ export default function ProfileScreen({ navigation }: any) {
 
     const navigateToFollowList = (type: 'followers' | 'following') => {
         navigation.navigate('FollowList', {
-            userId: user.id,
+            userId: targetUserId,
             type
         });
     };
@@ -75,22 +223,45 @@ export default function ProfileScreen({ navigation }: any) {
         dispatch(logout());
     };
 
-    const refreshStats = () => {
-        setRefreshCount(prev => prev + 1);
+    // 🔥 ОСТАНАВЛИВАЕМ POLLING ПРИ ОТКРЫТИИ МОДАЛКИ
+    const handleOpenModal = () => {
+        stopPolling();
+        setIsCreatePostModalVisible(true);
     };
 
-    React.useEffect(() => {
-        const unsubscribe = navigation.addListener('focus', () => {
-            refreshStats();
-        });
+    // 🔥 ВОЗОБНОВЛЯЕМ POLLING ПРИ ЗАКРЫТИИ МОДАЛКИ
+    const handleCloseModal = () => {
+        setIsCreatePostModalVisible(false);
+        setTimeout(() => {
+            if (isMountedRef.current && isFocused) {
+                startPolling();
+            }
+        }, 1000);
+    };
 
-        return unsubscribe;
-    }, [navigation]);
+    const renderPostItem = ({ item }: { item: any }) => (
+        <PostCard
+            post={{
+                id: item.id,
+                title: item.content?.split('\n')[0] || '',
+                content: item.content || '',
+                author: item.User?.name || item.User?.username || 'Аноним',
+                createdAt: item.createdAt ? new Date(item.createdAt).toLocaleDateString('ru-RU') : 'Неизвестно',
+                likesCount: item.likesCount || 0,
+                commentsCount: item.commentsCount || 0,
+                image: item.image,
+                isLiked: item.isLiked || false
+            }}
+            onLike={handleLike}
+            onComment={handleComment}
+        />
+    );
 
     if (loading) {
         return (
             <SafeAreaView style={styles.centerContainer}>
                 <ActivityIndicator size="large" color={darkTheme.colors.primary} />
+                <Text style={styles.loadingText}>Загрузка профиля...</Text>
             </SafeAreaView>
         );
     }
@@ -98,78 +269,159 @@ export default function ProfileScreen({ navigation }: any) {
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
             <View style={styles.header}>
-                <Text style={styles.title}>Профиль</Text>
-                <TouchableOpacity onPress={handleLogout}>
-                    <Text style={styles.logoutButton}>Выйти</Text>
-                </TouchableOpacity>
+                <Text style={styles.title}>
+                    {isOwnProfile ? 'Профиль' : 'Профиль пользователя'}
+                </Text>
+                <View style={styles.headerButtons}>
+                    {isOwnProfile && (
+                        <TouchableOpacity
+                            style={styles.createPostButton}
+                            onPress={handleOpenModal}
+                        >
+                            <Text style={styles.createPostButtonText}>+ Пост</Text>
+                        </TouchableOpacity>
+                    )}
+                    {isOwnProfile && (
+                        <TouchableOpacity onPress={handleLogout}>
+                            <Text style={styles.logoutButton}>Выйти</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
             </View>
 
             {user && (
-                <View style={styles.content}>
-                    {/* Информация о пользователе */}
-                    <View style={styles.userCard}>
-                        {/* 🔥 ИСПРАВЛЯЕМ ОТОБРАЖЕНИЕ АВАТАРА */}
-                        <Image
-                            source={{ uri: getAvatarUrl(user.avatar) }}
-                            style={styles.avatar}
-                            defaultSource={{ uri: 'https://via.placeholder.com/100' }}
-                            onError={(e) => console.log('❌ Avatar load error:', e.nativeEvent.error)}
+                <FlatList
+                    data={userPosts}
+                    renderItem={renderPostItem}
+                    keyExtractor={item => item.id}
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            tintColor={darkTheme.colors.primary}
+                            colors={[darkTheme.colors.primary]}
                         />
-                        <Text style={styles.userName}>{user.name}</Text>
-                        <Text style={styles.userUsername}>@{user.username}</Text>
-                        <Text style={styles.userEmail}>{user.email}</Text>
+                    }
+                    ListHeaderComponent={
+                        <View style={styles.content}>
+                            <View style={styles.userCard}>
+                                <Image
+                                    source={{ uri: getAvatarUrl(user.avatar) }}
+                                    style={styles.avatar}
+                                    defaultSource={{ uri: 'https://via.placeholder.com/100' }}
+                                    onError={(e) => console.log('❌ Avatar load error:', e.nativeEvent.error)}
+                                />
+                                <Text style={styles.userName}>{user.name}</Text>
+                                <Text style={styles.userUsername}>@{user.username}</Text>
+                                <Text style={styles.userEmail}>{user.email}</Text>
 
-                        {user.bio ? (
-                            <Text style={styles.userBio}>{user.bio}</Text>
-                        ) : (
-                            <Text style={styles.noBio}>Добавьте информацию о себе</Text>
-                        )}
-                    </View>
+                                {user.bio ? (
+                                    <Text style={styles.userBio}>{user.bio}</Text>
+                                ) : (
+                                    <Text style={styles.noBio}>Добавьте информацию о себе</Text>
+                                )}
+                            </View>
 
-                    {/* Статистика */}
-                    <View style={styles.stats}>
-                        <TouchableOpacity
-                            style={styles.statItem}
-                            onPress={() => navigateToFollowList('followers')}
-                        >
-                            <Text style={styles.statNumber}>{stats.followers}</Text>
-                            <Text style={styles.statLabel}>Подписчики</Text>
-                        </TouchableOpacity>
+                            <View style={styles.stats}>
+                                <TouchableOpacity
+                                    style={styles.statItem}
+                                    onPress={() => navigateToFollowList('followers')}
+                                >
+                                    <Text style={styles.statNumber}>{stats.followers}</Text>
+                                    <Text style={styles.statLabel}>Подписчики</Text>
+                                </TouchableOpacity>
 
-                        <TouchableOpacity
-                            style={styles.statItem}
-                            onPress={() => navigateToFollowList('following')}
-                        >
-                            <Text style={styles.statNumber}>{stats.following}</Text>
-                            <Text style={styles.statLabel}>Подписки</Text>
-                        </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.statItem}
+                                    onPress={() => navigateToFollowList('following')}
+                                >
+                                    <Text style={styles.statNumber}>{stats.following}</Text>
+                                    <Text style={styles.statLabel}>Подписки</Text>
+                                </TouchableOpacity>
 
-                        <TouchableOpacity
-                            style={styles.friendsButton}
-                            onPress={() => navigation.navigate('Friends')}
-                        >
-                            <Text style={styles.friendsButtonText}>👥 Мои друзья</Text>
-                        </TouchableOpacity>
+                                {isOwnProfile && (
+                                    <TouchableOpacity
+                                        style={styles.friendsButton}
+                                        onPress={() => navigation.navigate('Friends')}
+                                    >
+                                        <Text style={styles.friendsButtonText}>👥 Друзья</Text>
+                                    </TouchableOpacity>
+                                )}
 
-                        <View style={styles.statItem}>
-                            <Text style={styles.statNumber}>{stats.posts}</Text>
-                            <Text style={styles.statLabel}>Посты</Text>
+                                <View style={styles.statItem}>
+                                    <Text style={styles.statNumber}>{stats.posts}</Text>
+                                    <Text style={styles.statLabel}>Посты</Text>
+                                </View>
+                            </View>
+
+                            {isOwnProfile && (
+                                <View style={styles.actionButtons}>
+                                    <TouchableOpacity
+                                        style={styles.editButton}
+                                        onPress={() => navigation.navigate('EditProfile')}
+                                    >
+                                        <Text style={styles.editButtonText}>✏️ Редактировать</Text>
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity
+                                        style={styles.createPostMainButton}
+                                        onPress={handleOpenModal}
+                                    >
+                                        <Text style={styles.createPostMainButtonText}>+ Создать пост</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+
+                            <View style={styles.postsHeader}>
+                                <Text style={styles.postsTitle}>
+                                    {isOwnProfile ? 'Мои посты' : 'Посты пользователя'}
+                                </Text>
+                                {postsLoading && (
+                                    <ActivityIndicator size="small" color={darkTheme.colors.primary} />
+                                )}
+                            </View>
                         </View>
-                    </View>
+                    }
+                    ListEmptyComponent={
+                        !postsLoading && (
+                            <View style={styles.emptyPostsContainer}>
+                                <Text style={styles.emptyPostsText}>
+                                    {isOwnProfile ? 'Пока нет постов' : 'У пользователя пока нет постов'}
+                                </Text>
+                                <Text style={styles.emptyPostsSubtext}>
+                                    {isOwnProfile
+                                        ? 'Создайте свой первый пост и поделитесь им с друзьями!'
+                                        : 'Когда пользователь создаст пост, он появится здесь'
+                                    }
+                                </Text>
+                                {isOwnProfile && (
+                                    <TouchableOpacity
+                                        style={styles.emptyPostsButton}
+                                        onPress={handleOpenModal}
+                                    >
+                                        <Text style={styles.emptyPostsButtonText}>Создать первый пост</Text>
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+                        )
+                    }
+                    contentContainerStyle={userPosts.length === 0 ? { flexGrow: 1 } : null}
+                />
+            )}
 
-                    {/* Действия */}
-                    <TouchableOpacity
-                        style={styles.editButton}
-                        onPress={() => navigation.navigate('EditProfile')}
-                    >
-                        <Text style={styles.editButtonText}>Редактировать профиль</Text>
-                    </TouchableOpacity>
-                </View>
+            {isOwnProfile && (
+                <CreatePostModal
+                    visible={isCreatePostModalVisible}
+                    onClose={handleCloseModal}
+                    onSubmit={handleCreatePost}
+                />
             )}
         </SafeAreaView>
     );
 }
 
+// Стили остаются без изменений
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -183,10 +435,26 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: darkTheme.colors.border,
     },
+    headerButtons: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
     title: {
         color: darkTheme.colors.text,
         fontSize: 24,
         fontWeight: 'bold',
+    },
+    createPostButton: {
+        backgroundColor: darkTheme.colors.primary,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 16,
+    },
+    createPostButtonText: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: '600',
     },
     logoutButton: {
         color: '#ef4444',
@@ -194,7 +462,6 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     content: {
-        flex: 1,
         padding: 15,
     },
     centerContainer: {
@@ -203,6 +470,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: darkTheme.colors.background,
     },
+    loadingText: {
+        color: darkTheme.colors.textSecondary,
+        marginTop: 10,
+        fontSize: 16,
+    },
     userCard: {
         backgroundColor: darkTheme.colors.card,
         padding: 20,
@@ -210,7 +482,6 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         alignItems: 'center',
     },
-    // 🔥 ОБНОВЛЯЕМ СТИЛЬ АВАТАРА
     avatar: {
         width: 100,
         height: 100,
@@ -270,13 +541,33 @@ const styles = StyleSheet.create({
         color: darkTheme.colors.textSecondary,
         fontSize: 12,
     },
+    actionButtons: {
+        flexDirection: 'row',
+        gap: 10,
+        marginBottom: 20,
+    },
     editButton: {
+        flex: 1,
+        backgroundColor: darkTheme.colors.card,
+        padding: 15,
+        borderRadius: 8,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: darkTheme.colors.border,
+    },
+    editButtonText: {
+        color: darkTheme.colors.text,
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    createPostMainButton: {
+        flex: 1,
         backgroundColor: darkTheme.colors.primary,
         padding: 15,
         borderRadius: 8,
         alignItems: 'center',
     },
-    editButtonText: {
+    createPostMainButtonText: {
         color: '#fff',
         fontSize: 16,
         fontWeight: '600',
@@ -288,10 +579,52 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 10,
         minWidth: 120,
+        borderWidth: 1,
+        borderColor: darkTheme.colors.border,
     },
     friendsButtonText: {
         color: darkTheme.colors.text,
         fontSize: 16,
+        fontWeight: '600',
+    },
+    postsHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 15,
+    },
+    postsTitle: {
+        color: darkTheme.colors.text,
+        fontSize: 20,
+        fontWeight: 'bold',
+    },
+    emptyPostsContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 40,
+        flex: 1,
+    },
+    emptyPostsText: {
+        color: darkTheme.colors.text,
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginBottom: 8,
+    },
+    emptyPostsSubtext: {
+        color: darkTheme.colors.textSecondary,
+        fontSize: 14,
+        textAlign: 'center',
+        marginBottom: 20,
+    },
+    emptyPostsButton: {
+        backgroundColor: darkTheme.colors.primary,
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderRadius: 20,
+    },
+    emptyPostsButtonText: {
+        color: '#fff',
+        fontSize: 14,
         fontWeight: '600',
     },
 });

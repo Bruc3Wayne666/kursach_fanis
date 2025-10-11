@@ -1,33 +1,61 @@
-import React, { useState, useEffect } from 'react';
+// src/screens/CommentsScreen.tsx - ИСПРАВЛЕННЫЙ КОД
+import React, { useEffect, useState } from 'react';
 import {
     View,
     Text,
+    StyleSheet,
     TextInput,
     TouchableOpacity,
     FlatList,
-    StyleSheet,
     ActivityIndicator,
     Alert,
+    KeyboardAvoidingView,
+    Platform,
+    RefreshControl // 🔥 ДОБАВЛЯЕМ ИМПОРТ
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { darkTheme } from '../themes/dark';
 import { api } from '../services/api';
 
-export default function CommentsScreen({ route, navigation }: any) {
-    const { postId } = route.params;
-    const [comments, setComments] = useState<any[]>([]);
-    const [newComment, setNewComment] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [sending, setSending] = useState(false);
+interface Comment {
+    id: string;
+    content: string;
+    createdAt: string;
+    User: {
+        id: string;
+        username: string;
+        name: string;
+        avatar?: string;
+    };
+}
+
+interface CommentsScreenProps {
+    route: {
+        params: {
+            postId: string;
+            onCommentAdded?: () => void;
+        };
+    };
+    navigation: any;
+}
+
+export default function CommentsScreen({ route, navigation }: CommentsScreenProps) {
+    const { postId, onCommentAdded } = route.params;
     const user = useSelector((state: any) => state.auth.user);
+    const dispatch = useDispatch();
+
+    const [comments, setComments] = useState<Comment[]>([]);
+    const [commentText, setCommentText] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
 
     useEffect(() => {
         loadComments();
-    }, []);
+    }, [postId]);
 
     const loadComments = async () => {
-        setLoading(true);
         try {
             const response = await api.get(`/posts/${postId}/comments`);
             setComments(response.data.comments || []);
@@ -39,40 +67,68 @@ export default function CommentsScreen({ route, navigation }: any) {
         }
     };
 
-    const handleAddComment = async () => {
-        if (!newComment.trim()) return;
+    const onRefresh = async () => {
+        setRefreshing(true);
+        await loadComments();
+        setRefreshing(false);
+    };
 
-        console.log('📤 Sending comment:', { postId, content: newComment });
+    const handleSubmitComment = async () => {
+        if (!commentText.trim()) return;
 
-        setSending(true);
+        setSubmitting(true);
         try {
             const response = await api.post(`/posts/${postId}/comments`, {
-                content: newComment
+                content: commentText
             });
 
-            console.log('✅ Comment response:', response.data);
+            const newComment = response.data.comment;
+            setComments(prev => [newComment, ...prev]);
+            setCommentText('');
 
-            setComments(prev => [...prev, response.data.comment]);
-            setNewComment('');
+            if (onCommentAdded) {
+                onCommentAdded();
+            }
 
-        } catch (error: any) {
-            console.error('❌ Error adding comment:', error);
-            console.error('❌ Error response:', error.response?.data);
-            Alert.alert('Ошибка', error.response?.data?.error || 'Не удалось добавить комментарий');
+            Alert.alert('Успех', 'Комментарий добавлен');
+        } catch (error) {
+            console.error('Error creating comment:', error);
+            Alert.alert('Ошибка', 'Не удалось отправить комментарий');
         } finally {
-            setSending(false);
+            setSubmitting(false);
         }
     };
 
-    const renderComment = ({ item }: { item: any }) => (
-        <View style={styles.commentCard}>
-            <Text style={styles.commentAuthor}>
-                {item.User?.name || item.User?.username || 'Аноним'}
-            </Text>
-            <Text style={styles.commentText}>{item.content}</Text>
-            <Text style={styles.commentTime}>
-                {new Date(item.createdAt).toLocaleString('ru-RU')}
-            </Text>
+    const getAvatarUrl = (avatarPath: string | null) => {
+        if (!avatarPath) return null;
+
+        if (avatarPath.startsWith('http')) {
+            return avatarPath;
+        }
+
+        return `http://192.168.0.116:5000${avatarPath}`;
+    };
+
+    const renderCommentItem = ({ item }: { item: Comment }) => (
+        <View style={styles.commentItem}>
+            <View style={styles.commentHeader}>
+                <View style={styles.avatarContainer}>
+                    {item.User.avatar ? (
+                        <Text style={styles.avatarText}>👤</Text>
+                    ) : (
+                        <Text style={styles.avatarText}>
+                            {item.User.name.charAt(0).toUpperCase()}
+                        </Text>
+                    )}
+                </View>
+                <View style={styles.commentInfo}>
+                    <Text style={styles.commentAuthor}>{item.User.name}</Text>
+                    <Text style={styles.commentTime}>
+                        {new Date(item.createdAt).toLocaleString('ru-RU')}
+                    </Text>
+                </View>
+            </View>
+            <Text style={styles.commentContent}>{item.content}</Text>
         </View>
     );
 
@@ -86,55 +142,74 @@ export default function CommentsScreen({ route, navigation }: any) {
     }
 
     return (
-        <SafeAreaView style={styles.container} edges={['top']}>
+        <SafeAreaView style={styles.container} edges={['bottom']}>
+            {/* Шапка */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Text style={styles.backButton}>← Назад</Text>
+                <TouchableOpacity
+                    style={styles.backButton}
+                    onPress={() => navigation.goBack()}
+                >
+                    <Text style={styles.backButtonText}>← Назад</Text>
                 </TouchableOpacity>
                 <Text style={styles.title}>Комментарии</Text>
-                <View style={styles.placeholder} />
+                <View style={styles.headerPlaceholder} />
             </View>
 
+            {/* Список комментариев */}
             <FlatList
                 data={comments}
-                renderItem={renderComment}
+                renderItem={renderCommentItem}
                 keyExtractor={item => item.id}
-                style={styles.commentsList}
-                refreshing={loading}
-                onRefresh={loadComments}
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl // 🔥 ТЕПЕРЬ РАБОТАЕТ
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor={darkTheme.colors.primary}
+                        colors={[darkTheme.colors.primary]}
+                    />
+                }
+                contentContainerStyle={styles.commentsList}
                 ListEmptyComponent={
                     <View style={styles.emptyContainer}>
                         <Text style={styles.emptyText}>Пока нет комментариев</Text>
-                        <Text style={styles.emptySubtext}>Будьте первым!</Text>
+                        <Text style={styles.emptySubtext}>
+                            Будьте первым, кто оставит комментарий!
+                        </Text>
                     </View>
                 }
             />
 
-            <View style={styles.inputContainer}>
+            {/* Поле ввода комментария */}
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={styles.inputContainer}
+            >
                 <TextInput
                     style={styles.commentInput}
-                    placeholder="Добавить комментарий..."
+                    placeholder="Напишите комментарий..."
                     placeholderTextColor={darkTheme.colors.textSecondary}
-                    value={newComment}
-                    onChangeText={setNewComment}
+                    value={commentText}
+                    onChangeText={setCommentText}
                     multiline
                     maxLength={500}
+                    editable={!submitting}
                 />
                 <TouchableOpacity
                     style={[
-                        styles.sendButton,
-                        (!newComment.trim() || sending) && styles.sendButtonDisabled
+                        styles.submitButton,
+                        (!commentText.trim() || submitting) && styles.submitButtonDisabled
                     ]}
-                    onPress={handleAddComment}
-                    disabled={!newComment.trim() || sending}
+                    onPress={handleSubmitComment}
+                    disabled={!commentText.trim() || submitting}
                 >
-                    {sending ? (
+                    {submitting ? (
                         <ActivityIndicator size="small" color="#fff" />
                     ) : (
-                        <Text style={styles.sendButtonText}>➤</Text>
+                        <Text style={styles.submitButtonText}>Отправить</Text>
                     )}
                 </TouchableOpacity>
-            </View>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 }
@@ -153,15 +228,19 @@ const styles = StyleSheet.create({
         borderBottomColor: darkTheme.colors.border,
     },
     backButton: {
+        padding: 5,
+    },
+    backButtonText: {
         color: darkTheme.colors.primary,
         fontSize: 16,
+        fontWeight: '600',
     },
     title: {
         color: darkTheme.colors.text,
         fontSize: 18,
-        fontWeight: '600',
+        fontWeight: 'bold',
     },
-    placeholder: {
+    headerPlaceholder: {
         width: 60,
     },
     centerContainer: {
@@ -176,35 +255,57 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     commentsList: {
-        flex: 1,
+        flexGrow: 1,
         padding: 15,
     },
-    commentCard: {
+    commentItem: {
         backgroundColor: darkTheme.colors.card,
         padding: 15,
-        borderRadius: 8,
+        borderRadius: 12,
         marginBottom: 10,
+        borderWidth: 1,
+        borderColor: darkTheme.colors.border,
+    },
+    commentHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    avatarContainer: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: darkTheme.colors.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 10,
+    },
+    avatarText: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: 'bold',
+    },
+    commentInfo: {
+        flex: 1,
     },
     commentAuthor: {
-        color: darkTheme.colors.primary,
-        fontSize: 14,
-        fontWeight: '600',
-        marginBottom: 5,
-    },
-    commentText: {
         color: darkTheme.colors.text,
         fontSize: 14,
-        lineHeight: 20,
-        marginBottom: 5,
+        fontWeight: '600',
+        marginBottom: 2,
     },
     commentTime: {
         color: darkTheme.colors.textSecondary,
         fontSize: 12,
     },
+    commentContent: {
+        color: darkTheme.colors.text,
+        fontSize: 14,
+        lineHeight: 20,
+    },
     emptyContainer: {
-        flex: 1,
-        justifyContent: 'center',
         alignItems: 'center',
+        justifyContent: 'center',
         padding: 40,
     },
     emptyText: {
@@ -212,17 +313,21 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
         marginBottom: 8,
+        textAlign: 'center',
     },
     emptySubtext: {
         color: darkTheme.colors.textSecondary,
         fontSize: 14,
+        textAlign: 'center',
+        lineHeight: 20,
     },
     inputContainer: {
         flexDirection: 'row',
+        alignItems: 'flex-end',
         padding: 15,
         borderTopWidth: 1,
         borderTopColor: darkTheme.colors.border,
-        alignItems: 'flex-end',
+        backgroundColor: darkTheme.colors.background,
     },
     commentInput: {
         flex: 1,
@@ -236,20 +341,18 @@ const styles = StyleSheet.create({
         maxHeight: 100,
         marginRight: 10,
     },
-    sendButton: {
+    submitButton: {
         backgroundColor: darkTheme.colors.primary,
-        width: 40,
-        height: 40,
+        paddingHorizontal: 20,
+        paddingVertical: 12,
         borderRadius: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
     },
-    sendButtonDisabled: {
+    submitButtonDisabled: {
         opacity: 0.5,
     },
-    sendButtonText: {
+    submitButtonText: {
         color: '#fff',
-        fontSize: 16,
-        fontWeight: 'bold',
+        fontSize: 14,
+        fontWeight: '600',
     },
 });
