@@ -39,7 +39,6 @@
       <change afterPath="$PROJECT_DIR$/client/src/screens/UserProfileScreen.tsx" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/client/src/services/socket.ts" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/client/src/store/slices/conversationsSlice.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/collect.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/client" beforeDir="false" afterPath="$PROJECT_DIR$/client" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/client - Copy" beforeDir="false" afterPath="$PROJECT_DIR$/client - Copy" afterDir="false" />
@@ -72,10 +71,7 @@
       <change beforePath="$PROJECT_DIR$/client/src/utils/authLoader.ts" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/utils/authLoader.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/client/src/utils/constants.ts" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/utils/constants.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/client/src/utils/storage.ts" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/utils/storage.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/controllers/conversationController.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/controllers/conversationController.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/controllers/postController.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/controllers/postController.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/routes/conversations.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/routes/conversations.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/routes/posts.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/routes/posts.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/controllers/messageController.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/controllers/messageController.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -214,7 +210,7 @@
       <workItem from="1764438428776" duration="4000" />
       <workItem from="1764438455293" duration="612000" />
       <workItem from="1764611646135" duration="6000" />
-      <workItem from="1773591811048" duration="15892000" />
+      <workItem from="1773591811048" duration="17375000" />
     </task>
     <servers />
   </component>
