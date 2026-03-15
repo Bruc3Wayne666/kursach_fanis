@@ -1,13 +1,13 @@
 // УБЕДИСЬ ЧТО ТАК ИМПОРТИРУЕШЬ
-const { User, Post, Comment, Like } = require('../models/associations');
+const {User, Post, Comment, Like} = require('../models/associations');
 
 exports.createPost = async (req, res) => {
     try {
-        const { content, image } = req.body;
+        const {content, image} = req.body;
         const userId = req.userId;
 
         if (!content && !image) {
-            return res.status(400).json({ error: 'Content or image is required' });
+            return res.status(400).json({error: 'Content or image is required'});
         }
 
         const post = await Post.create({
@@ -23,17 +23,17 @@ exports.createPost = async (req, res) => {
             }]
         });
 
-        res.status(201).json({ post: postWithUser });
+        res.status(201).json({post: postWithUser});
     } catch (error) {
         console.error('Create post error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({error: 'Internal server error'});
     }
 };
 
 exports.getFeed = async (req, res) => {
     try {
         const userId = req.userId;
-        const { page = 1, limit = 10 } = req.query;
+        const {page = 1, limit = 10} = req.query;
 
         const offset = (page - 1) * limit;
 
@@ -61,7 +61,7 @@ exports.getFeed = async (req, res) => {
                     model: User,
                     as: 'Likers',
                     attributes: ['id'],
-                    through: { attributes: [] } // Не включаем данные из таблицы Like
+                    through: {attributes: []} // Не включаем данные из таблицы Like
                 }
             ],
             order: [['createdAt', 'DESC']],
@@ -73,7 +73,7 @@ exports.getFeed = async (req, res) => {
         const postsWithCounts = await Promise.all(
             posts.map(async (post) => {
                 const commentCount = await Comment.count({
-                    where: { postId: post.id }
+                    where: {postId: post.id}
                 });
 
                 // Проверяем лайкнул ли текущий пользователь этот пост
@@ -87,92 +87,101 @@ exports.getFeed = async (req, res) => {
             })
         );
 
-        res.json({ posts: postsWithCounts });
+        res.json({posts: postsWithCounts});
     } catch (error) {
         console.error('Get feed error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({error: 'Internal server error'});
     }
 };
 
 exports.getUserPosts = async (req, res) => {
     try {
-        const { userId } = req.params;
-        const { page = 1, limit = 10 } = req.query;
+        const {userId} = req.params;
+        const currentUserId = req.userId; // ID того, кто смотрит (из мидлвара auth)
+        const {page = 1, limit = 10} = req.query;
 
         const offset = (page - 1) * limit;
 
         const posts = await Post.findAll({
-            where: { userId },
+            where: {userId},
             include: [{
                 model: User,
                 attributes: ['id', 'username', 'name', 'avatar']
+            }, {
+                model: User,
+                as: 'Likers',
+                attributes: ['id'],
+                through: {attributes: []}
             }],
             order: [['createdAt', 'DESC']],
             limit: parseInt(limit),
             offset: offset
         });
 
-        // 🔥 ТОЖЕ ДОБАВЛЯЕМ ПОДСЧЕТ КОММЕНТАРИЕВ
-        const postsWithCommentCount = await Promise.all(
+        const postsWithData = await Promise.all(
             posts.map(async (post) => {
                 const commentCount = await Comment.count({
                     where: { postId: post.id }
                 });
 
+                // 🔥 2. ПРОВЕРЯЕМ ЛАЙК ТУТ
+                const isLiked = post.Likers.some(liker => liker.id === currentUserId);
+
                 return {
                     ...post.toJSON(),
-                    commentsCount: commentCount
+                    commentsCount: commentCount,
+                    isLiked: isLiked // Теперь это поле будет уходить на фронт
                 };
             })
         );
 
-        res.json({ posts: postsWithCommentCount });
+        res.json({ posts: postsWithData });
     } catch (error) {
         console.error('Get user posts error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({error: 'Internal server error'});
     }
 };
 
 exports.deletePost = async (req, res) => {
     try {
-        const { postId } = req.params;
+        const {postId} = req.params;
         const userId = req.userId;
 
         const post = await Post.findOne({
-            where: { id: postId, userId }
+            where: {id: postId, userId}
         });
 
         if (!post) {
-            return res.status(404).json({ error: 'Post not found' });
+            return res.status(404).json({error: 'Post not found'});
         }
 
         await post.destroy();
 
-        res.json({ message: 'Post deleted successfully' });
+        res.json({message: 'Post deleted successfully'});
     } catch (error) {
         console.error('Delete post error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({error: 'Internal server error'});
     }
 };
 
 
 exports.likePost = async (req, res) => {
     try {
-        const { postId } = req.params;
+        const {postId} = req.params;
         const userId = req.userId;
 
         const post = await Post.findByPk(postId);
         if (!post) {
-            return res.status(404).json({ error: 'Post not found' });
+            return res.status(404).json({error: 'Post not found'});
         }
 
         // Проверяем не лайкнул ли уже
         const existingLike = await Like.findOne({
-            where: { userId, postId }
+            where: {userId, postId}
         });
 
         if (existingLike) {
-            return res.status(400).json({ error: 'Post already liked' });
+            return res.status(400).json({error: 'Post already liked'});
         }
 
         // Создаем лайк
@@ -186,30 +195,30 @@ exports.likePost = async (req, res) => {
             likesCount: post.likesCount + 1
         });
 
-        res.json({ message: 'Post liked', likesCount: post.likesCount });
+        res.json({message: 'Post liked', likesCount: post.likesCount});
     } catch (error) {
         console.error('Like post error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({error: 'Internal server error'});
     }
 };
 
 exports.unlikePost = async (req, res) => {
     try {
-        const { postId } = req.params;
+        const {postId} = req.params;
         const userId = req.userId;
 
         const post = await Post.findByPk(postId);
         if (!post) {
-            return res.status(404).json({ error: 'Post not found' });
+            return res.status(404).json({error: 'Post not found'});
         }
 
         // Находим и удаляем лайк
         const like = await Like.findOne({
-            where: { userId, postId }
+            where: {userId, postId}
         });
 
         if (!like) {
-            return res.status(400).json({ error: 'Post not liked' });
+            return res.status(400).json({error: 'Post not liked'});
         }
 
         await like.destroy();
@@ -219,9 +228,35 @@ exports.unlikePost = async (req, res) => {
             likesCount: Math.max(0, post.likesCount - 1)
         });
 
-        res.json({ message: 'Post unliked', likesCount: post.likesCount });
+        res.json({message: 'Post unliked', likesCount: post.likesCount});
     } catch (error) {
         console.error('Unlike post error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({error: 'Internal server error'});
+    }
+};
+
+
+exports.toggleLike = async (req, res) => {
+    try {
+        const {postId} = req.params;
+        const userId = req.userId;
+
+        // 1. Ищем лайк в базе
+        const existingLike = await Like.findOne({where: {userId, postId}});
+        const post = await Post.findByPk(postId);
+
+        if (existingLike) {
+            // Если есть — удаляем (дизлайк)
+            await existingLike.destroy();
+            await post.decrement('likesCount');
+            return res.json({isLiked: false, likesCount: post.likesCount - 1});
+        } else {
+            // Если нет — создаем (лайк)
+            await Like.create({userId, postId});
+            await post.increment('likesCount');
+            return res.json({isLiked: true, likesCount: post.likesCount + 1});
+        }
+    } catch (error) {
+        res.status(500).json({error: 'Ошибка сервера'});
     }
 };

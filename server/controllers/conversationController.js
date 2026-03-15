@@ -266,3 +266,67 @@ exports.updateConversation = async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 };
+
+
+// controllers/conversationController.js - ДОБАВЛЯЕМ
+exports.leaveConversation = async (req, res) => {
+    try {
+        const { conversationId } = req.params;
+        const userId = req.userId;
+
+        console.log('🚪 User leaving conversation:', { conversationId, userId });
+
+        // Проверяем что пользователь участник беседы
+        const member = await ConversationMember.findOne({
+            where: { conversationId, userId }
+        });
+
+        if (!member) {
+            return res.status(404).json({ error: 'You are not a member of this conversation' });
+        }
+
+        // Проверяем количество участников
+        const memberCount = await ConversationMember.count({
+            where: { conversationId }
+        });
+
+        console.log(`👥 Current member count: ${memberCount}`);
+
+        // Если пользователь последний участник - удаляем всю беседу
+        if (memberCount === 1) {
+            await Conversation.destroy({ where: { id: conversationId } });
+            console.log('🗑️ Conversation deleted (last member left)');
+        } else {
+            // Если пользователь админ и есть другие участники - передаем админство
+            if (member.role === 'admin') {
+                const otherMember = await ConversationMember.findOne({
+                    where: {
+                        conversationId,
+                        userId: { [Op.ne]: userId }
+                    },
+                    order: [['createdAt', 'ASC']]
+                });
+
+                if (otherMember) {
+                    await otherMember.update({ role: 'admin' });
+                    console.log('👑 Admin role transferred to user:', otherMember.userId);
+                }
+            }
+
+            // Удаляем пользователя из беседы
+            await ConversationMember.destroy({
+                where: { conversationId, userId }
+            });
+            console.log('✅ User removed from conversation');
+        }
+
+        res.json({
+            message: 'Successfully left the conversation',
+            deleted: memberCount === 1
+        });
+
+    } catch (error) {
+        console.error('❌ Leave conversation error:', error);
+        res.status(500).json({ error: 'Failed to leave conversation: ' + error.message });
+    }
+};
