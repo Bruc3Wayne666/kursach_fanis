@@ -1,0 +1,139 @@
+flowchart LR
+  %% =========================
+  %% DFD for the current project
+  %% Actors: Client, Application, Server, DB
+  %% Layers: Auth, Users, Posts, Friends, Conversations, Messages
+  %% =========================
+
+  subgraph CLIENT["Client"]
+    C_AUTH["Auth actions<br/>register / login / logout / restore session"]
+    C_USERS["User actions<br/>search / open profile / follow / edit profile"]
+    C_POSTS["Content actions<br/>open feed / create post / like / comment"]
+    C_FRIENDS["Friend actions<br/>send request / accept / reject / remove"]
+    C_CONVS["Conversation actions<br/>create / open / add members / update / leave"]
+    C_MSGS["Message actions<br/>open chats / open history / send / mark read / delete"]
+  end
+
+  subgraph APP["Application (React Native)"]
+    A_SESSION["Session layer<br/>MMKV + Redux auth state"]
+    A_API["API client layer<br/>axios + Authorization header"]
+    A_UPLOAD["Upload/UI layer<br/>image-picker + multipart form-data"]
+    A_STATE["Feature state<br/>posts / users / conversations / messages"]
+  end
+
+  subgraph SERVER["Server (Express)"]
+    S_AUTH["Auth module<br/>/api/auth + JWT middleware"]
+    S_USERS["Users module<br/>/api/users"]
+    S_POSTS["Posts module<br/>/api/posts + /api/upload"]
+    S_FRIENDS["Friends module<br/>/api/friends"]
+    S_CONVS["Conversations module<br/>/api/conversations"]
+    S_MSGS["Messages module<br/>/api/messages"]
+    S_FILES["Server file storage<br/>uploads/ + static /uploads"]
+  end
+
+  subgraph DB["Database (PostgreSQL)"]
+    D_USERS["Users data<br/>User"]
+    D_POSTS["Post data<br/>Post"]
+    D_SOCIAL["Social graph data<br/>Follow + Friendship"]
+    D_COMMENTS["Comment data<br/>Comment"]
+    D_LIKES["Like data<br/>Like"]
+    D_CONVS["Conversation data<br/>Conversation + ConversationMember"]
+    D_MSGS["Message data<br/>Message"]
+  end
+
+  %% =========================
+  %% Common application flow
+  %% =========================
+  C_AUTH -->|"credentials / token"| A_SESSION
+  C_USERS -->|"query / profile action"| A_API
+  C_POSTS -->|"post content / image / like / comment"| A_API
+  C_FRIENDS -->|"friend request actions"| A_API
+  C_CONVS -->|"conversation actions"| A_API
+  C_MSGS -->|"chat actions / message payload"| A_API
+
+  A_SESSION -->|"token restore / persist / clear"| A_API
+  A_UPLOAD -->|"image file -> multipart request"| A_API
+  A_API -->|"HTTP JSON requests"| S_AUTH
+  A_API -->|"HTTP JSON requests"| S_USERS
+  A_API -->|"HTTP JSON requests"| S_POSTS
+  A_API -->|"HTTP JSON requests"| S_FRIENDS
+  A_API -->|"HTTP JSON requests"| S_CONVS
+  A_API -->|"HTTP JSON requests"| S_MSGS
+
+  S_AUTH -->|"auth result / user profile / JWT"| A_SESSION
+  S_USERS -->|"profile / followers / following / search results"| A_STATE
+  S_POSTS -->|"feed / created post / comments / like state / upload url"| A_STATE
+  S_FRIENDS -->|"friend list / request state"| A_STATE
+  S_CONVS -->|"conversation list / details / membership state"| A_STATE
+  S_MSGS -->|"chat list / messages / read state"| A_STATE
+
+  %% =========================
+  %% Layer: Auth
+  %% =========================
+  A_SESSION -->|"POST /auth/register<br/>POST /auth/login<br/>GET /auth/me<br/>POST /auth/logout"| S_AUTH
+  S_AUTH -->|"find/create/update user"| D_USERS
+  D_USERS -->|"user record"| S_AUTH
+
+  %% =========================
+  %% Layer: Users
+  %% =========================
+  A_API -->|"GET /users/search<br/>GET /users/:id/profile<br/>PUT /users/profile<br/>GET followers/following"| S_USERS
+  A_API -->|"POST follow<br/>DELETE unfollow"| S_USERS
+  S_USERS -->|"read/update profile"| D_USERS
+  S_USERS -->|"read/write follow links"| D_SOCIAL
+  S_USERS -->|"read posts for profile preview"| D_POSTS
+  D_USERS -->|"users / profile"| S_USERS
+  D_SOCIAL -->|"follow graph"| S_USERS
+  D_POSTS -->|"user posts"| S_USERS
+
+  %% =========================
+  %% Layer: Posts
+  %% =========================
+  C_POSTS -->|"select image"| A_UPLOAD
+  A_API -->|"GET /posts/feed<br/>POST /posts<br/>DELETE /posts/:id<br/>POST /posts/:id/toggle-like"| S_POSTS
+  A_API -->|"GET /posts/:id/comments<br/>POST /posts/:id/comments"| S_POSTS
+  A_UPLOAD -->|"POST /upload"| S_POSTS
+  S_POSTS -->|"save uploaded file"| S_FILES
+  S_FILES -->|"public file url"| S_POSTS
+  S_POSTS -->|"read/write post"| D_POSTS
+  S_POSTS -->|"read/write like"| D_LIKES
+  S_POSTS -->|"read/write comment"| D_COMMENTS
+  S_POSTS -->|"read author / feed owner / following"| D_USERS
+  S_POSTS -->|"read social links for feed"| D_SOCIAL
+  D_POSTS -->|"posts"| S_POSTS
+  D_LIKES -->|"likes"| S_POSTS
+  D_COMMENTS -->|"comments / comment counts"| S_POSTS
+  D_USERS -->|"author info"| S_POSTS
+  D_SOCIAL -->|"following ids"| S_POSTS
+
+  %% =========================
+  %% Layer: Friends
+  %% =========================
+  A_API -->|"GET /friends<br/>GET /friends/requests<br/>POST request<br/>PUT accept/reject<br/>DELETE friendship"| S_FRIENDS
+  S_FRIENDS -->|"validate users"| D_USERS
+  S_FRIENDS -->|"read/write friendship requests"| D_SOCIAL
+  D_USERS -->|"target user"| S_FRIENDS
+  D_SOCIAL -->|"friendship state"| S_FRIENDS
+
+  %% =========================
+  %% Layer: Conversations
+  %% =========================
+  A_API -->|"POST /conversations<br/>GET /conversations<br/>GET /conversations/:id<br/>POST members<br/>PUT update<br/>DELETE leave"| S_CONVS
+  S_CONVS -->|"validate members"| D_USERS
+  S_CONVS -->|"read/write conversation core"| D_CONVS
+  S_CONVS -->|"read last messages / unread counts"| D_MSGS
+  D_USERS -->|"member profiles"| S_CONVS
+  D_CONVS -->|"conversation + membership data"| S_CONVS
+  D_MSGS -->|"conversation message summary"| S_CONVS
+
+  %% =========================
+  %% Layer: Messages
+  %% =========================
+  A_API -->|"GET /messages/chats<br/>GET /messages/chat/:otherUserId<br/>GET /messages/conversation/:id<br/>POST /messages/send<br/>PUT /messages/read<br/>DELETE /messages/:id"| S_MSGS
+  S_MSGS -->|"validate sender / receiver"| D_USERS
+  S_MSGS -->|"validate conversation membership"| D_CONVS
+  S_MSGS -->|"read/write message data"| D_MSGS
+  D_USERS -->|"sender / receiver data"| S_MSGS
+  D_CONVS -->|"membership / conversation access"| S_MSGS
+  D_MSGS -->|"chat history / unread state / last message"| S_MSGS
+

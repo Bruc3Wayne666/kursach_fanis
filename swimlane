@@ -1,0 +1,342 @@
+sequenceDiagram
+  autonumber
+  actor Client as "Клиент (человек)"
+  participant App as "Приложение (React Native)"
+  participant Server as "Сервер (Express API)"
+  participant DB as "БД (PostgreSQL)"
+
+  %% =========================================
+  %% СЛОЙ: Авторизация и сессия
+  %% =========================================
+  Note over Client,DB: Слой: Авторизация и сессия
+
+  Client->>App: Открывает приложение
+  Note right of App: MMKV: getToken()/getUser()
+  App->>Server: GET /api/auth/me (Bearer token)
+  Server->>DB: SELECT user by decoded.userId
+  DB-->>Server: user
+  Server-->>App: 200 {user} / 401
+
+  alt Регистрация
+    Client->>App: Заполняет форму регистрации
+    App->>Server: POST /api/auth/register
+    Server->>DB: SELECT user where email=...
+    DB-->>Server: not found / found
+    Server->>DB: INSERT User (hash password)
+    DB-->>Server: created user
+    Server-->>App: 201 {token,user}
+    Note right of App: Redux login + MMKV setToken/setUser
+  else Логин
+    Client->>App: Вводит email+password
+    App->>Server: POST /api/auth/login
+    Server->>DB: SELECT user where email=...
+    DB-->>Server: user / null
+    Server->>DB: UPDATE User set isOnline=true
+    DB-->>Server: ok
+    Server-->>App: 200 {token,user} / 401
+    Note right of App: Redux login + MMKV setToken/setUser
+  end
+
+  Client->>App: Нажимает "Выйти"
+  App->>Server: POST /api/auth/logout (Bearer token)
+  Server->>DB: UPDATE User set isOnline=false
+  DB-->>Server: ok
+  Server-->>App: 200 {message}
+  Note right of App: Redux logout + MMKV clearAuth
+
+  %% =========================================
+  %% СЛОЙ: Лента / Посты / Лайки / Комментарии / Upload
+  %% =========================================
+  Note over Client,DB: Слой: Лента / Посты / Лайки / Комментарии / Upload
+
+  Client->>App: Открывает ленту
+  App->>Server: GET /api/posts/feed (Bearer token)
+  Server->>DB: SELECT Following ids + self
+  DB-->>Server: ids
+  Server->>DB: SELECT posts (userId in ids) + join User + join Likers
+  DB-->>Server: posts
+  Server->>DB: COUNT comments per post (N запросов)
+  DB-->>Server: counts
+  Server-->>App: 200 {posts[]}
+
+  alt Создание поста с картинкой
+    Client->>App: Выбирает картинку в модалке
+    App->>Server: POST /api/upload (multipart/form-data)
+    Note right of Server: multer сохраняет файл в server/uploads\nи возвращает url /uploads/<name>
+    Server-->>App: 200 {url}
+  end
+
+  Client->>App: Нажимает "Опубликовать"
+  App->>Server: POST /api/posts {content,image?}
+  Server->>DB: INSERT Post (userId, content, image)
+  DB-->>Server: post
+  Server->>DB: SELECT Post + join User (author)
+  DB-->>Server: postWithUser
+  Server-->>App: 201 {post}
+
+  Client->>App: Тап по лайку
+  App->>Server: POST /api/posts/:postId/toggle-like
+  Server->>DB: SELECT Like where (userId,postId)
+  DB-->>Server: like / null
+  alt был лайк
+    Server->>DB: DELETE Like
+    DB-->>Server: ok
+    Server->>DB: UPDATE Post decrement likesCount
+    DB-->>Server: ok
+    Server-->>App: 200 {isLiked:false,likesCount}
+  else лайка не было
+    Server->>DB: INSERT Like
+    DB-->>Server: ok
+    Server->>DB: UPDATE Post increment likesCount
+    DB-->>Server: ok
+    Server-->>App: 200 {isLiked:true,likesCount}
+  end
+
+  Client->>App: Открывает комментарии к посту
+  App->>Server: GET /api/posts/:postId/comments
+  Server->>DB: SELECT Comment where postId + join User
+  DB-->>Server: comments
+  Server-->>App: 200 {comments[]}
+
+  Client->>App: Пишет комментарий
+  App->>Server: POST /api/posts/:postId/comments {content}
+  Server->>DB: SELECT Post by postId
+  DB-->>Server: post / null
+  Server->>DB: INSERT Comment (userId, postId, content)
+  DB-->>Server: comment
+  Server->>DB: SELECT Comment + join User
+  DB-->>Server: commentWithUser
+  Server-->>App: 200 {comment}
+
+  %% =========================================
+  %% СЛОЙ: Пользователи / Профиль / Подписки / Редактирование
+  %% =========================================
+  Note over Client,DB: Слой: Пользователи / Профиль / Подписки / Редактирование
+
+  Client->>App: Открывает поиск
+  App->>Server: GET /api/users/search?query=...
+  Server->>DB: SELECT users where username ILIKE or name ILIKE
+  DB-->>Server: users
+  Server-->>App: 200 {users[]}
+
+  Client->>App: Открывает профиль пользователя
+  App->>Server: GET /api/users/:userId/profile
+  Server->>DB: SELECT User + include Posts(limit 10) + Followers + Following
+  DB-->>Server: userProfile
+  Server-->>App: 200 {user}
+
+  alt Подписаться
+    Client->>App: Нажимает Follow
+    App->>Server: POST /api/users/:targetUserId/follow
+    Server->>DB: SELECT Follow where (followerId,followingId)
+    DB-->>Server: follow / null
+    Server->>DB: INSERT Follow
+    DB-->>Server: ok
+    Server-->>App: 200 {message}
+  else Отписаться
+    Client->>App: Нажимает Unfollow
+    App->>Server: DELETE /api/users/:targetUserId/unfollow
+    Server->>DB: DELETE Follow where (followerId,followingId)
+    DB-->>Server: rows affected
+    Server-->>App: 200 {message} / 404
+  end
+
+  Client->>App: Редактирует профиль
+  App->>Server: PUT /api/users/profile {name,username,bio,avatar}
+  Server->>DB: SELECT User by req.userId
+  DB-->>Server: user
+  Server->>DB: (опц.) SELECT User where username=... (проверка занятости)
+  DB-->>Server: exists / null
+  Server->>DB: UPDATE User set fields
+  DB-->>Server: updated
+  Server-->>App: 200 {user}
+
+  %% =========================================
+  %% СЛОЙ: Друзья (Friendship)
+  %% =========================================
+  Note over Client,DB: Слой: Друзья (Friendship)
+
+  Client->>App: Отправляет заявку в друзья
+  App->>Server: POST /api/friends/:targetUserId/request
+  Server->>DB: SELECT User target
+  DB-->>Server: user / null
+  Server->>DB: SELECT Friendship where (userId,friendId) in both directions
+  DB-->>Server: existing / null
+  Server->>DB: INSERT Friendship(status=pending)
+  DB-->>Server: requestId
+  Server-->>App: 200 {message,requestId}
+
+  Client->>App: Открывает список заявок
+  App->>Server: GET /api/friends/requests?type=received|sent
+  Server->>DB: SELECT Friendship pending + join User/Friend
+  DB-->>Server: requests
+  Server-->>App: 200 {requests[]}
+
+  alt Принять
+    Client->>App: Accept
+    App->>Server: PUT /api/friends/:requestId/accept
+    Server->>DB: SELECT Friendship where id=requestId and friendId=currentUser and pending
+    DB-->>Server: request / null
+    Server->>DB: UPDATE Friendship set status=accepted
+    DB-->>Server: ok
+    Server-->>App: 200 {message}
+  else Отклонить
+    Client->>App: Reject
+    App->>Server: PUT /api/friends/:requestId/reject
+    Server->>DB: SELECT Friendship ... pending
+    DB-->>Server: request / null
+    Server->>DB: UPDATE Friendship set status=rejected
+    DB-->>Server: ok
+    Server-->>App: 200 {message}
+  end
+
+  Client->>App: Открывает друзей
+  App->>Server: GET /api/friends
+  Server->>DB: SELECT Friendship accepted where userId=me or friendId=me + join обе стороны
+  DB-->>Server: friendships
+  Server-->>App: 200 {friends[]}
+
+  Client->>App: Удаляет друга
+  App->>Server: DELETE /api/friends/:friendshipId
+  Server->>DB: SELECT Friendship accepted with id and (userId=me or friendId=me)
+  DB-->>Server: friendship / null
+  Server->>DB: DELETE Friendship
+  DB-->>Server: ok
+  Server-->>App: 200 {message}
+
+  %% =========================================
+  %% СЛОЙ: Беседы (групповые)
+  %% =========================================
+  Note over Client,DB: Слой: Беседы (групповые)
+
+  Client->>App: Создает беседу
+  App->>Server: POST /api/conversations {name,memberIds,description}
+  Server->>DB: SELECT Users where id in memberIds
+  DB-->>Server: members
+  Server->>DB: INSERT Conversation (isGroup=true)
+  DB-->>Server: conversation
+  Server->>DB: INSERT ConversationMember (creator admin + members)
+  DB-->>Server: ok
+  Server->>DB: SELECT Conversation + Members
+  DB-->>Server: conversationWithMembers
+  Server-->>App: 201 {conversation}
+
+  Client->>App: Открывает список бесед
+  App->>Server: GET /api/conversations
+  Server->>DB: SELECT conversations where current user in Members + include Members + include last Message
+  DB-->>Server: conversations
+  Server->>DB: COUNT unread messages per conversation
+  DB-->>Server: unreadCount
+  Server-->>App: 200 {conversations[]}
+
+  Client->>App: Открывает беседу
+  App->>Server: GET /api/conversations/:conversationId
+  Server->>DB: SELECT ConversationMember where (conversationId,userId)
+  DB-->>Server: isMember
+  Server->>DB: SELECT Conversation + Members
+  DB-->>Server: conversation
+  Server-->>App: 200 {conversation} / 403
+
+  alt Добавить участников (admin)
+    Client->>App: Добавляет участников
+    App->>Server: POST /api/conversations/:conversationId/members {memberIds[]}
+    Server->>DB: SELECT ConversationMember where role=admin
+    DB-->>Server: adminMember / null
+    Server->>DB: SELECT existing members + INSERT new members
+    DB-->>Server: ok
+    Server-->>App: 200 {message} / 403
+  end
+
+  alt Редактировать беседу (admin)
+    Client->>App: Меняет name/avatar/description
+    App->>Server: PUT /api/conversations/:conversationId {name,avatar,description}
+    Server->>DB: SELECT ConversationMember role=admin
+    DB-->>Server: adminMember / null
+    Server->>DB: UPDATE Conversation
+    DB-->>Server: ok
+    Server-->>App: 200 {conversation} / 403
+  end
+
+  Client->>App: Выходит из беседы
+  App->>Server: DELETE /api/conversations/:conversationId/leave
+  Server->>DB: SELECT ConversationMember where (conversationId,userId)
+  DB-->>Server: member / null
+  Server->>DB: COUNT ConversationMember where conversationId
+  DB-->>Server: memberCount
+  alt последний участник
+    Server->>DB: DELETE Conversation
+    DB-->>Server: ok
+  else есть другие
+    opt если был admin
+      Server->>DB: SELECT oldest other member; UPDATE role=admin
+      DB-->>Server: ok
+    end
+    Server->>DB: DELETE ConversationMember (leave)
+    DB-->>Server: ok
+  end
+  Server-->>App: 200 {message,deleted}
+
+  %% =========================================
+  %% СЛОЙ: Сообщения (REST)
+  %% =========================================
+  Note over Client,DB: Слой: Сообщения (REST)
+
+  Client->>App: Открывает экран сообщений
+  App->>Server: GET /api/messages/chats
+  Server->>DB: SELECT personal message pairs (conversationId is null)
+  DB-->>Server: pairs
+  Server->>DB: SELECT partners + lastMessage + unreadCount (для каждого)
+  DB-->>Server: personalChats
+  Server->>DB: SELECT group chats via ConversationMember + include last Message + Members
+  DB-->>Server: groupChats
+  Server-->>App: 200 {chats[]}
+
+  Client->>App: Открывает личный чат
+  App->>Server: GET /api/messages/chat/:otherUserId
+  Server->>DB: SELECT messages between users (conversationId null)
+  DB-->>Server: messages
+  Server->>DB: UPDATE messages set isRead=true where sender=other and receiver=me
+  DB-->>Server: ok
+  Server-->>App: 200 {messages[]}
+
+  Client->>App: Открывает групповой чат
+  App->>Server: GET /api/messages/conversation/:conversationId
+  Server->>DB: SELECT ConversationMember (isMember?)
+  DB-->>Server: isMember
+  Server->>DB: SELECT messages where conversationId + join Sender
+  DB-->>Server: messages
+  Server->>DB: UPDATE messages set isRead=true where sender!=me
+  DB-->>Server: ok
+  Server-->>App: 200 {messages[]}
+
+  Client->>App: Отправляет сообщение
+  App->>Server: POST /api/messages/send {content, messageType, receiverId? conversationId?}
+  alt ЛС
+    Server->>DB: SELECT receiver User
+    DB-->>Server: user / null
+    Server->>DB: INSERT Message (senderId, receiverId, conversationId null)
+    DB-->>Server: message
+  else Беседа
+    Server->>DB: SELECT ConversationMember (isMember?)
+    DB-->>Server: isMember
+    Server->>DB: INSERT Message (senderId, conversationId, receiverId null)
+    DB-->>Server: message
+  end
+  Server->>DB: SELECT Message + join Sender
+  DB-->>Server: messageWithSender
+  Server-->>App: 201 {message}
+
+  opt Явное "прочитать"
+    App->>Server: PUT /api/messages/read {messageIds[]}
+    Server->>DB: UPDATE Message set isRead=true where id in ids and receiverId=me
+    DB-->>Server: ok
+    Server-->>App: 200 {message}
+  end
+
+  Client->>App: Удаляет свое сообщение
+  App->>Server: DELETE /api/messages/:messageId
+  Server->>DB: SELECT Message where id and senderId=me
+  DB-->>Server: message / null
+  Server->>DB: DELETE Message
+  DB-->>Server: ok
+  Server-->>App: 200 {message} / 404

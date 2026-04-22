@@ -71,7 +71,6 @@
       <change beforePath="$PROJECT_DIR$/client/src/utils/authLoader.ts" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/utils/authLoader.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/client/src/utils/constants.ts" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/utils/constants.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/client/src/utils/storage.ts" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/utils/storage.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/controllers/messageController.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/controllers/messageController.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -89,7 +88,7 @@
     </option>
   </component>
   <component name="Git.Settings">
-    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/client" />
   </component>
   <component name="GitHubPullRequestSearchHistory">{
   &quot;lastFilter&quot;: {
@@ -111,26 +110,26 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "Node.js.collect.js.executor": "Run",
-    "Python.collect.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "master",
-    "last_opened_file_path": "C:/Users/mm/WebstormProjects/kursach_fanis",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
-    "ts.external.directory.path": "C:\\Users\\mm\\WebstormProjects\\kursach_fanis\\client\\node_modules\\typescript\\lib",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Node.js.collect.js.executor&quot;: &quot;Run&quot;,
+    &quot;Python.collect.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/mm/WebstormProjects/kursach_fanis&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;C:\\Users\\mm\\WebstormProjects\\kursach_fanis\\client\\node_modules\\typescript\\lib&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\mm\WebstormProjects\kursach_fanis\temp" />
@@ -210,7 +209,11 @@
       <workItem from="1764438428776" duration="4000" />
       <workItem from="1764438455293" duration="612000" />
       <workItem from="1764611646135" duration="6000" />
-      <workItem from="1773591811048" duration="17375000" />
+      <workItem from="1773591811048" duration="17648000" />
+      <workItem from="1774209608190" duration="1581000" />
+      <workItem from="1774255080666" duration="1877000" />
+      <workItem from="1775004554540" duration="14000" />
+      <workItem from="1775103959834" duration="595000" />
     </task>
     <servers />
   </component>

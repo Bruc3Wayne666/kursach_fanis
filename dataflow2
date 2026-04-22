@@ -1,0 +1,91 @@
+flowchart LR
+  %% Classic DFD-style diagram based on the current project
+
+  subgraph SYS[" "]
+    direction LR
+
+    E1["клиент"]
+    E2["мобильное приложение"]
+    E3["сервер API"]
+
+    P1["1<br/>авторизовать<br/>пользователя"]
+    P2["2<br/>обработать профиль<br/>и социальные связи"]
+    P3["3<br/>обработать посты,<br/>лайки и комментарии"]
+    P4["4<br/>обработать беседы<br/>и участников"]
+    P5["5<br/>обработать чаты<br/>и сообщения"]
+
+    D1["D1<br/>пользователи"]
+    D2["D2<br/>подписки и дружба"]
+    D3["D3<br/>посты"]
+    D4["D4<br/>комментарии и лайки"]
+    D5["D5<br/>беседы и участники"]
+    D6["D6<br/>сообщения"]
+    D7["D7<br/>файлы uploads"]
+  end
+
+  E1 -->|"регистрация / логин / действия"| E2
+  E2 -->|"HTTP запросы + token"| E3
+
+  E3 --> P1
+  E3 --> P2
+  E3 --> P3
+  E3 --> P4
+  E3 --> P5
+
+  %% Auth
+  E2 -->|"email / password / token"| P1
+  P1 -->|"создать / найти / обновить"| D1
+  D1 -->|"профиль пользователя"| P1
+  P1 -->|"JWT / user / статус сессии"| E2
+
+  %% Users / social
+  E2 -->|"поиск / профиль / follow / unfollow / edit"| P2
+  P2 -->|"прочитать / обновить профиль"| D1
+  P2 -->|"follow / friendship state"| D2
+  D1 -->|"пользователи / профиль / списки"| P2
+  D2 -->|"подписки / друзья / заявки"| P2
+  P2 -->|"результаты поиска / профиль / друзья"| E2
+
+  %% Posts
+  E2 -->|"лента / новый пост / like / comment / upload"| P3
+  P3 -->|"создать / читать посты"| D3
+  P3 -->|"создать / читать комментарии и лайки"| D4
+  P3 -->|"автор / подписки для ленты"| D1
+  P3 -->|"социальный граф для feed"| D2
+  P3 -->|"сохранить файл"| D7
+  D3 -->|"посты"| P3
+  D4 -->|"комментарии / лайки / counts"| P3
+  D7 -->|"url изображения"| P3
+  P3 -->|"лента / пост / комментарии / like state"| E2
+
+  %% Conversations
+  E2 -->|"create / list / open / add members / update / leave"| P4
+  P4 -->|"проверить пользователей"| D1
+  P4 -->|"создать / читать беседы и membership"| D5
+  P4 -->|"last message / unread count"| D6
+  D1 -->|"данные участников"| P4
+  D5 -->|"беседы / роли / участники"| P4
+  D6 -->|"сводка по сообщениям"| P4
+  P4 -->|"conversation list / details"| E2
+
+  %% Messages
+  E2 -->|"chat list / history / send / read / delete"| P5
+  P5 -->|"валидировать пользователей"| D1
+  P5 -->|"валидировать доступ к беседе"| D5
+  P5 -->|"создать / читать / обновить / удалить сообщения"| D6
+  D1 -->|"sender / receiver data"| P5
+  D5 -->|"membership / conversation access"| P5
+  D6 -->|"history / unread / last message"| P5
+  P5 -->|"chats / messages / read state"| E2
+
+  classDef entity fill:#f58ae7,stroke:#111,color:#111,font-weight:bold;
+  classDef ext fill:#efefef,stroke:#111,color:#111,font-weight:bold;
+  classDef process fill:#fff176,stroke:#111,color:#111,font-weight:bold;
+  classDef store fill:#ff9d42,stroke:#111,color:#111,font-weight:bold;
+
+  class E1 ext;
+  class E2,E3 entity;
+  class P1,P2,P3,P4,P5 process;
+  class D1,D2,D3,D4,D5,D6,D7 store;
+
+  style SYS fill:#0b0b0b,stroke:#0b0b0b,color:#ffffff
