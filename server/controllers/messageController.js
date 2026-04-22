@@ -401,17 +401,29 @@ exports.getChats = async (req, res) => {
             }]
         });
 
-        const groupChats = userConversations.map(member => {
-            const conv = member.Conversation;
-            const lastMsg = conv.Messages?.[0] || null;
-            return {
-                type: 'group',
-                id: conv.id, // Ключевой ID для фильтрации
-                conversation: conv,
-                lastMessage: lastMsg,
-                updatedAt: lastMsg?.createdAt || conv.createdAt
-            };
-        });
+        const groupChats = await Promise.all(
+            userConversations.map(async (member) => {
+                const conv = member.Conversation;
+                const lastMsg = conv.Messages?.[0] || null;
+
+                const unreadCount = await Message.count({
+                    where: {
+                        conversationId: conv.id,
+                        senderId: { [Op.ne]: currentUserId },
+                        isRead: false
+                    }
+                });
+
+                return {
+                    type: 'group',
+                    id: conv.id, // Ключевой ID для фильтрации
+                    conversation: conv,
+                    lastMessage: lastMsg,
+                    unreadCount,
+                    updatedAt: lastMsg?.createdAt || conv.createdAt
+                };
+            })
+        );
 
         // 4. ГЛОБАЛЬНАЯ ФИЛЬТРАЦИЯ ДУБЛИКАТОВ
         const allChatsRaw = [...personalChats.filter(c => c), ...groupChats];

@@ -17,6 +17,7 @@ const messageRoutes = require('./routes/messages');
 const commentRoutes = require('./routes/comments');
 const conversationRoutes = require('./routes/conversations'); // 🔥 НОВЫЙ
 const friendsRoutes = require('./routes/friends'); // 🔥 НОВЫЙ
+const aiRoutes = require('./routes/ai');
 
 dotenv.config();
 
@@ -72,6 +73,7 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/posts', commentRoutes);
 app.use('/api/conversations', conversationRoutes); // 🔥 НОВЫЙ
 app.use('/api/friends', friendsRoutes); // 🔥 НОВЫЙ
+app.use('/api/ai', aiRoutes);
 
 // Роут для загрузки файлов
 app.post('/api/upload', upload.single('image'), (req, res) => {
