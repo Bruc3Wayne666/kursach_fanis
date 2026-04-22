@@ -1,5 +1,62 @@
-const { User, Post, Follow } = require('../models/associations');
+const { User, Post, Follow, Friendship } = require('../models/associations');
 const { Op } = require('sequelize');
+
+const buildRelationStatus = async (currentUserId, targetUserId) => {
+    if (!currentUserId || !targetUserId) {
+        return {
+            isOwnProfile: false,
+            isFollowing: false,
+            isFriend: false,
+            friendshipStatus: 'none',
+            friendshipDirection: null,
+            friendshipId: null,
+        };
+    }
+
+    if (String(currentUserId) === String(targetUserId)) {
+        return {
+            isOwnProfile: true,
+            isFollowing: false,
+            isFriend: false,
+            friendshipStatus: 'self',
+            friendshipDirection: null,
+            friendshipId: null,
+        };
+    }
+
+    const [follow, friendship] = await Promise.all([
+        Follow.findOne({
+            where: {
+                followerId: currentUserId,
+                followingId: targetUserId,
+            },
+        }),
+        Friendship.findOne({
+            where: {
+                [Op.or]: [
+                    { userId: currentUserId, friendId: targetUserId },
+                    { userId: targetUserId, friendId: currentUserId },
+                ],
+            },
+            order: [['createdAt', 'DESC']],
+        }),
+    ]);
+
+    const friendshipDirection = friendship
+        ? String(friendship.userId) === String(currentUserId)
+            ? 'outgoing'
+            : 'incoming'
+        : null;
+
+    return {
+        isOwnProfile: false,
+        isFollowing: Boolean(follow),
+        isFriend: friendship?.status === 'accepted',
+        friendshipStatus: friendship?.status || 'none',
+        friendshipDirection,
+        friendshipId: friendship?.id || null,
+    };
+};
 
 // controllers/userController.js - УБЕДИМСЯ ЧТО АВАТАР ВКЛЮЧАЕТСЯ
 exports.getProfile = async (req, res) => {
@@ -47,6 +104,7 @@ exports.getProfile = async (req, res) => {
 exports.searchUsers = async (req, res) => {
     try {
         const { query } = req.query;
+        const currentUserId = req.userId;
 
         if (!query || query.length < 2) {
             return res.status(400).json({ error: 'Query must be at least 2 characters' });
@@ -63,7 +121,14 @@ exports.searchUsers = async (req, res) => {
             limit: 20
         });
 
-        res.json({ users });
+        const usersWithRelation = await Promise.all(
+            users.map(async (user) => ({
+                ...user.toJSON(),
+                relation: await buildRelationStatus(currentUserId, user.id),
+            }))
+        );
+
+        res.json({ users: usersWithRelation });
     } catch (error) {
         console.error('Search users error:', error);
         res.status(500).json({ error: 'Internal server error' });
@@ -155,12 +220,18 @@ exports.updateProfile = async (req, res) => {
             }
         }
 
-        // Обновляем данные
+        const nextValues = {
+            name: typeof name === 'string' ? name.trim() || user.name : user.name,
+            username: typeof username === 'string' ? username.trim() || user.username : user.username,
+            bio: typeof bio === 'string' ? bio : user.bio,
+        };
+
+        if (Object.prototype.hasOwnProperty.call(req.body, 'avatar')) {
+            nextValues.avatar = avatar || null;
+        }
+
         await user.update({
-            name: name || user.name,
-            username: username || user.username,
-            bio: bio || user.bio,
-            avatar: avatar || user.avatar // 🔥 ДОБАВЛЯЕМ АВАТАР
+            ...nextValues
         });
 
         console.log('✅ Profile updated successfully');
@@ -250,6 +321,28 @@ exports.getFollowing = async (req, res) => {
         res.json({ following: followingWithFollowStatus });
     } catch (error) {
         console.error('Get following error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+exports.getRelationStatus = async (req, res) => {
+    try {
+        const currentUserId = req.userId;
+        const { userId } = req.params;
+
+        const targetUser = await User.findByPk(userId, {
+            attributes: ['id'],
+        });
+
+        if (!targetUser) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const relation = await buildRelationStatus(currentUserId, userId);
+
+        res.json({ relation });
+    } catch (error) {
+        console.error('Get relation status error:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 };

@@ -1,5 +1,5 @@
 // src/components/UserSearchModal.tsx - ИСПРАВЛЕННАЯ ВЕРСИЯ
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -15,6 +15,7 @@ import {
 import { useSelector } from 'react-redux';
 import { darkTheme } from '../themes/dark';
 import { api } from '../services/api';
+import Avatar from './Avatar';
 
 interface User {
     id: string;
@@ -36,15 +37,7 @@ export default function UserSearchModal({ visible, onClose, onUserSelect }: User
     const [loading, setLoading] = useState(false);
     const currentUser = useSelector((state: any) => state.auth.user);
 
-    useEffect(() => {
-        if (visible && searchQuery.length >= 2) {
-            searchUsers();
-        } else {
-            setUsers([]);
-        }
-    }, [searchQuery, visible]);
-
-    const searchUsers = async () => {
+    const searchUsers = useCallback(async () => {
         if (searchQuery.length < 2) return;
 
         setLoading(true);
@@ -59,7 +52,15 @@ export default function UserSearchModal({ visible, onClose, onUserSelect }: User
         } finally {
             setLoading(false);
         }
-    };
+    }, [currentUser.id, searchQuery]);
+
+    useEffect(() => {
+        if (visible && searchQuery.length >= 2) {
+            searchUsers();
+        } else {
+            setUsers([]);
+        }
+    }, [searchQuery, searchUsers, visible]);
 
     const handleUserSelect = (user: User) => {
         onUserSelect(user);
@@ -74,15 +75,14 @@ export default function UserSearchModal({ visible, onClose, onUserSelect }: User
             onPress={() => handleUserSelect(item)}
         >
             <View style={styles.avatarContainer}>
-                <View style={styles.avatar}>
-                    {item.avatar ? (
-                        <Text style={styles.avatarText}>👤</Text>
-                    ) : (
-                        <Text style={styles.avatarText}>
-                            {item.name.charAt(0).toUpperCase()}
-                        </Text>
-                    )}
-                </View>
+                <Avatar
+                    avatar={item.avatar}
+                    name={item.name}
+                    username={item.username}
+                    size={40}
+                    style={styles.avatar}
+                    textStyle={styles.avatarText}
+                />
                 {item.isOnline && <View style={styles.onlineDot} />}
             </View>
 

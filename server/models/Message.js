@@ -17,7 +17,7 @@ const Message = sequelize.define('Message', {
         defaultValue: false
     },
     messageType: {
-        type: DataTypes.ENUM('text', 'image'),
+        type: DataTypes.ENUM('text', 'image', 'audio'),
         defaultValue: 'text'
     },
     // 🔥 ДОБАВЛЯЕМ conversationId для групповых чатов

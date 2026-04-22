@@ -17,8 +17,8 @@ router.post('/', conversationController.createConversation);
 router.get('/', conversationController.getConversations);
 router.get('/:conversationId', conversationController.getConversation);
 router.post('/:conversationId/members', conversationController.addMembers);
+router.delete('/:conversationId/members/:memberId', conversationController.removeMember);
 router.put('/:conversationId', conversationController.updateConversation);
-// 🔥 ДОБАВЛЯЕМ ENDPOINT ДЛЯ ВЫХОДА ИЗ БЕСЕДЫ
 router.delete('/:conversationId/leave', conversationController.leaveConversation);
 
 module.exports = router;

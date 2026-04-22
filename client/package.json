@@ -20,6 +20,8 @@
     "react-native": "0.82.0",
     "react-native-image-picker": "^8.2.1",
     "react-native-mmkv": "^3.3.3",
+    "react-native-nitro-modules": "^0.35.4",
+    "react-native-nitro-sound": "^0.2.13",
     "react-native-safe-area-context": "^5.6.1",
     "react-native-screens": "^4.16.0",
     "react-native-vector-icons": "^10.3.0",

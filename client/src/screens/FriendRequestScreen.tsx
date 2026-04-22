@@ -1,5 +1,5 @@
 // src/screens/FriendRequestsScreen.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     View,
     Text,
@@ -8,27 +8,28 @@ import {
     StyleSheet,
     ActivityIndicator,
     Alert,
-    Image,
     RefreshControl
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { darkTheme } from '../themes/dark';
 import { api } from '../services/api';
+import Avatar from '../components/Avatar';
 
 export default function FriendRequestsScreen() {
     const [requests, setRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const navigation = useNavigation();
+    const isFocused = useIsFocused();
+    const pollingRef = useRef<NodeJS.Timeout | null>(null);
+    const isMountedRef = useRef(true);
 
-    useEffect(() => {
-        loadRequests();
-    }, []);
-
-    // src/screens/FriendRequestsScreen.tsx - ИСПРАВЛЯЕМ ЗАГРУЗКУ ЗАПРОСОВ
-    const loadRequests = async () => {
+    const loadRequests = useCallback(async (showLoader = true) => {
         try {
+            if (showLoader) {
+                setLoading(true);
+            }
             console.log('🔄 Loading friend requests...');
             const response = await api.get('/friends/requests');
             console.log('✅ Requests loaded:', response.data.requests.length);
@@ -46,11 +47,47 @@ export default function FriendRequestsScreen() {
             setLoading(false);
             setRefreshing(false);
         }
-    };
+    }, []);
+
+    const stopPolling = useCallback(() => {
+        if (pollingRef.current) {
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+        }
+    }, []);
+
+    const startPolling = useCallback(() => {
+        if (pollingRef.current || !isFocused) {
+            return;
+        }
+
+        loadRequests(false);
+        pollingRef.current = setInterval(() => {
+            if (isMountedRef.current && isFocused) {
+                loadRequests(false);
+            }
+        }, 5000);
+    }, [isFocused, loadRequests]);
+
+    useEffect(() => {
+        isMountedRef.current = true;
+
+        if (isFocused) {
+            loadRequests();
+            startPolling();
+        } else {
+            stopPolling();
+        }
+
+        return () => {
+            isMountedRef.current = false;
+            stopPolling();
+        };
+    }, [isFocused, loadRequests, startPolling, stopPolling]);
 
     const onRefresh = () => {
         setRefreshing(true);
-        loadRequests();
+        loadRequests(false);
     };
 
     const acceptRequest = async (requestId: string, userName: string) => {
@@ -99,8 +136,11 @@ export default function FriendRequestsScreen() {
                 style={styles.userInfo}
                 onPress={() => viewProfile(item.User)}
             >
-                <Image
-                    source={{ uri: item.User?.avatar || 'https://via.placeholder.com/50' }}
+                <Avatar
+                    avatar={item.User?.avatar}
+                    name={item.User?.name}
+                    username={item.User?.username}
+                    size={50}
                     style={styles.avatar}
                 />
                 <View style={styles.userDetails}>

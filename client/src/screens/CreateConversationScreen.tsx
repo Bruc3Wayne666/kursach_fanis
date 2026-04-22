@@ -8,8 +8,7 @@ import {
     FlatList,
     StyleSheet,
     Alert,
-    ActivityIndicator,
-    Image
+    ActivityIndicator
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSelector, useDispatch } from 'react-redux'; // 🔥 ДОБАВЛЯЕМ useDispatch
@@ -17,6 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import { darkTheme } from '../themes/dark';
 import { api } from '../services/api';
 import { getChats } from '../store/slices/messagesSlice'; // 🔥 ДОБАВЛЯЕМ ИМПОРТ
+import Avatar from '../components/Avatar';
 
 interface User {
     id: string;
@@ -62,8 +62,8 @@ export default function CreateConversationScreen() {
     // src/screens/CreateConversationScreen.tsx - ПОЛНОСТЬЮ НОВАЯ ВЕРСИЯ
     // В CreateConversationScreen.tsx - УБЕДИСЬ ЧТО НЕТ ОБРАБОТКИ ОШИБКИ existingConversationId
     const createConversation = async () => {
-        if (selectedUsers.length < 2) {
-            Alert.alert('Ошибка', 'Выберите минимум 2 участника для беседы');
+        if (selectedUsers.length < 1) {
+            Alert.alert('Ошибка', 'Выберите хотя бы 1 участника для беседы');
             return;
         }
 
@@ -130,8 +130,11 @@ export default function CreateConversationScreen() {
                 style={[styles.userItem, isSelected && styles.selectedUserItem]}
                 onPress={() => toggleUserSelection(item)}
             >
-                <Image
-                    source={{ uri: item.avatar || 'https://via.placeholder.com/50' }}
+                <Avatar
+                    avatar={item.avatar}
+                    name={item.name}
+                    username={item.username}
+                    size={40}
                     style={styles.avatar}
                 />
                 <View style={styles.userInfo}>
@@ -152,11 +155,11 @@ export default function CreateConversationScreen() {
                     <Text style={styles.backButton}>← Назад</Text>
                 </TouchableOpacity>
                 <Text style={styles.title}>Новая беседа</Text>
-                <TouchableOpacity onPress={createConversation} disabled={loading || selectedUsers.length < 2}>
+                <TouchableOpacity onPress={createConversation} disabled={loading || selectedUsers.length < 1}>
                     {loading ? (
                         <ActivityIndicator size="small" color={darkTheme.colors.primary} />
                     ) : (
-                        <Text style={[styles.createButton, selectedUsers.length < 2 && styles.createButtonDisabled]}>
+                        <Text style={[styles.createButton, selectedUsers.length < 1 && styles.createButtonDisabled]}>
                             Создать
                         </Text>
                     )}

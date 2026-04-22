@@ -17,7 +17,7 @@ import {launchImageLibrary} from 'react-native-image-picker';
 import {darkTheme} from '../themes/dark';
 import {api} from '../services/api';
 import {updateProfile} from '../store/slices/authSlice';
-import {API_BASE_URL, API_FILE_URL} from "../utils/constants.ts";
+import {API_FILE_URL} from "../utils/constants.ts";
 
 export default function EditProfileScreen({navigation}: any) {
     const user = useSelector((state: any) => state.auth.user);
@@ -110,12 +110,7 @@ export default function EditProfileScreen({navigation}: any) {
             console.log('✅ Ответ сервера:', response.data);
 
             // Обновляем Redux store
-            dispatch(updateProfile({
-                name: formData.name,
-                username: formData.username,
-                bio: formData.bio,
-                avatar: formData.avatar // 🔥 ОБНОВЛЯЕМ АВАТАР
-            }));
+            dispatch(updateProfile(response.data.user));
 
             Alert.alert('Успех', 'Профиль обновлен');
             navigation.goBack();

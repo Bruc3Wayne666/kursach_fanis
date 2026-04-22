@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     View,
     Text,
@@ -7,26 +7,30 @@ import {
     StyleSheet,
     ActivityIndicator,
     Alert,
+    RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useIsFocused } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
 import { darkTheme } from '../themes/dark';
 import { api } from '../services/api';
 import { followUser, unfollowUser } from '../store/slices/usersSlice';
+import Avatar from '../components/Avatar';
 
 export default function FollowListScreen({ route, navigation }: any) {
     const { type, userId } = route.params; // 'followers' или 'following'
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [followLoading, setFollowLoading] = useState<string | null>(null);
     const currentUser = useSelector((state: any) => state.auth.user);
     const dispatch = useDispatch();
+    const isFocused = useIsFocused();
+    const onRelationChanged = route.params?.onRelationChanged;
 
-    useEffect(() => {
-        loadUsers();
-    }, [type, userId]);
+    const emptyContentStyle = styles.emptyListContent;
 
-    const loadUsers = async () => {
+    const loadUsers = useCallback(async () => {
         try {
             setLoading(true);
             const endpoint = type === 'followers' ? 'followers' : 'following';
@@ -53,6 +57,7 @@ export default function FollowListScreen({ route, navigation }: any) {
                     id: user.id?.toString() || Math.random().toString(),
                     name: user.name || 'Пользователь',
                     username: user.username || 'user',
+                    avatar: user.avatar || null,
                     isOnline: Boolean(user.isOnline),
                     isFollowing: type === 'following' ? true : Boolean(user.isFollowing)
                 };
@@ -66,42 +71,51 @@ export default function FollowListScreen({ route, navigation }: any) {
         } finally {
             setLoading(false);
         }
-    };
+    }, [type, userId]);
+
+    useEffect(() => {
+        if (!isFocused) {
+            return;
+        }
+
+        loadUsers();
+    }, [isFocused, loadUsers]);
+
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        await loadUsers();
+        setRefreshing(false);
+    }, [loadUsers]);
 
     const handleFollow = async (targetUserId: string, isCurrentlyFollowing: boolean) => {
         if (!targetUserId || targetUserId === currentUser?.id) return;
 
         setFollowLoading(targetUserId);
+        const previousUsers = users;
 
         try {
-            // Мгновенно обновляем UI
-            const updatedUsers = users.map(user =>
-                user && user.id === targetUserId
-                    ? { ...user, isFollowing: !isCurrentlyFollowing }
-                    : user
-            );
+            const updatedUsers = type === 'following'
+                ? users.filter(user => user && user.id !== targetUserId)
+                : users.map(user =>
+                    user && user.id === targetUserId
+                        ? { ...user, isFollowing: !isCurrentlyFollowing }
+                        : user
+                );
             setUsers(updatedUsers);
 
-            // Отправляем запрос на сервер
             if (isCurrentlyFollowing) {
                 await dispatch(unfollowUser(targetUserId) as any);
             } else {
                 await dispatch(followUser(targetUserId) as any);
             }
 
+            onRelationChanged?.();
+
         } catch (error: any) {
             console.error('Follow error:', error);
 
-            // Более детальная обработка ошибки
             const errorMessage = error?.response?.data?.message || error?.message || 'Не удалось выполнить действие';
-
-            // Возвращаем прежнее состояние при ошибке
-            const revertedUsers = users.map(user =>
-                user && user.id === targetUserId
-                    ? { ...user, isFollowing: isCurrentlyFollowing }
-                    : user
-            );
-            setUsers(revertedUsers);
+            setUsers(previousUsers);
             Alert.alert('Ошибка', errorMessage);
         } finally {
             setFollowLoading(null);
@@ -135,23 +149,35 @@ export default function FollowListScreen({ route, navigation }: any) {
 
         return (
             <View style={styles.userCard}>
-                <View style={styles.userInfo}>
-                    <Text style={styles.userName}>
-                        {item.name || 'Пользователь'}
-                    </Text>
-                    <Text style={styles.userUsername}>
-                        @{item.username || 'user'}
-                    </Text>
-                    <View style={styles.status}>
-                        <View style={[
-                            styles.statusDot,
-                            item.isOnline && styles.statusOnline
-                        ]} />
-                        <Text style={styles.statusText}>
-                            {item.isOnline ? 'Online' : 'Offline'}
+                <TouchableOpacity
+                    style={styles.userInfo}
+                    onPress={() => navigation.navigate('UserProfile', { userId: item.id })}
+                >
+                    <Avatar
+                        avatar={item.avatar}
+                        name={item.name}
+                        username={item.username}
+                        size={50}
+                        style={styles.avatar}
+                    />
+                    <View style={styles.userMeta}>
+                        <Text style={styles.userName}>
+                            {item.name || 'Пользователь'}
                         </Text>
+                        <Text style={styles.userUsername}>
+                            @{item.username || 'user'}
+                        </Text>
+                        <View style={styles.status}>
+                            <View style={[
+                                styles.statusDot,
+                                item.isOnline && styles.statusOnline
+                            ]} />
+                            <Text style={styles.statusText}>
+                                {item.isOnline ? 'Online' : 'Offline'}
+                            </Text>
+                        </View>
                     </View>
-                </View>
+                </TouchableOpacity>
 
                 {showButton && buttonText && (
                     <TouchableOpacity
@@ -211,6 +237,14 @@ export default function FollowListScreen({ route, navigation }: any) {
                 renderItem={renderUserItem}
                 keyExtractor={(item) => item?.id?.toString() || Math.random().toString()}
                 showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor={darkTheme.colors.primary}
+                        colors={[darkTheme.colors.primary]}
+                    />
+                }
                 ListEmptyComponent={
                     <View style={styles.emptyContainer}>
                         <Text style={styles.emptyText}>
@@ -221,7 +255,7 @@ export default function FollowListScreen({ route, navigation }: any) {
                         </Text>
                     </View>
                 }
-                contentContainerStyle={users.length === 0 ? { flex: 1 } : undefined}
+                contentContainerStyle={users.length === 0 ? emptyContentStyle : undefined}
             />
         </SafeAreaView>
     );
@@ -272,6 +306,14 @@ const styles = StyleSheet.create({
         borderBottomColor: darkTheme.colors.border,
     },
     userInfo: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    avatar: {
+        marginRight: 12,
+    },
+    userMeta: {
         flex: 1,
     },
     userName: {
@@ -336,6 +378,9 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         padding: 40,
+    },
+    emptyListContent: {
+        flex: 1,
     },
     emptyText: {
         color: darkTheme.colors.textSecondary,

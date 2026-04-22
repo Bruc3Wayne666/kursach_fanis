@@ -1,5 +1,5 @@
 // src/screens/FriendsScreen.tsx - ИСПРАВЛЕННАЯ ВЕРСИЯ
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     View,
     Text,
@@ -8,35 +8,37 @@ import {
     StyleSheet,
     ActivityIndicator,
     Alert,
-    Image,
     RefreshControl
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useSelector } from 'react-redux';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { darkTheme } from '../themes/dark';
 import { api } from '../services/api';
+import Avatar from '../components/Avatar';
 
 export default function FriendsScreen() {
     const [friends, setFriends] = useState<any[]>([]);
+    const [requestsCount, setRequestsCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const navigation = useNavigation();
     const isFocused = useIsFocused();
-    const currentUser = useSelector((state: any) => state.auth.user);
+    const pollingRef = useRef<NodeJS.Timeout | null>(null);
+    const isMountedRef = useRef(true);
 
-    useEffect(() => {
-        if (isFocused) {
-            loadFriends();
-        }
-    }, [isFocused]);
-
-    const loadFriends = async () => {
+    const loadFriends = useCallback(async (showLoader = true) => {
         try {
+            if (showLoader) {
+                setLoading(true);
+            }
             console.log('🔄 Loading friends...');
-            const response = await api.get('/friends');
-            console.log('✅ Friends loaded:', response.data.friends.length);
-            setFriends(response.data.friends);
+            const [friendsResponse, requestsResponse] = await Promise.all([
+                api.get('/friends'),
+                api.get('/friends/requests').catch(() => ({ data: { requests: [] } })),
+            ]);
+            console.log('✅ Friends loaded:', friendsResponse.data.friends.length);
+            setFriends(friendsResponse.data.friends || []);
+            setRequestsCount(requestsResponse.data.requests?.length || 0);
         } catch (error: any) {
             console.error('❌ Error loading friends:', error);
 
@@ -50,11 +52,47 @@ export default function FriendsScreen() {
             setLoading(false);
             setRefreshing(false);
         }
-    };
+    }, []);
+
+    const stopPolling = useCallback(() => {
+        if (pollingRef.current) {
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+        }
+    }, []);
+
+    const startPolling = useCallback(() => {
+        if (pollingRef.current || !isFocused) {
+            return;
+        }
+
+        loadFriends(false);
+        pollingRef.current = setInterval(() => {
+            if (isMountedRef.current && isFocused) {
+                loadFriends(false);
+            }
+        }, 5000);
+    }, [isFocused, loadFriends]);
+
+    useEffect(() => {
+        isMountedRef.current = true;
+
+        if (isFocused) {
+            loadFriends();
+            startPolling();
+        } else {
+            stopPolling();
+        }
+
+        return () => {
+            isMountedRef.current = false;
+            stopPolling();
+        };
+    }, [isFocused, loadFriends, startPolling, stopPolling]);
 
     const onRefresh = () => {
         setRefreshing(true);
-        loadFriends();
+        loadFriends(false);
     };
 
     const startChat = (friend: any) => {
@@ -112,10 +150,12 @@ export default function FriendsScreen() {
                 style={styles.friendInfo}
                 onPress={() => viewProfile(item)}
             >
-                <Image
-                    source={{ uri: item.avatar || 'https://via.placeholder.com/50' }}
+                <Avatar
+                    avatar={item.avatar}
+                    name={item.name}
+                    username={item.username}
+                    size={50}
                     style={styles.avatar}
-                    defaultSource={{ uri: 'https://via.placeholder.com/50' }}
                 />
                 <View style={styles.friendDetails}>
                     <Text style={styles.friendName}>{item.name}</Text>
@@ -174,6 +214,13 @@ export default function FriendsScreen() {
                         onPress={navigateToFriendRequests}
                     >
                         <Text style={styles.requestsButtonText}>📨</Text>
+                        {requestsCount > 0 && (
+                            <View style={styles.requestsBadge}>
+                                <Text style={styles.requestsBadgeText}>
+                                    {requestsCount > 99 ? '99+' : requestsCount}
+                                </Text>
+                            </View>
+                        )}
                     </TouchableOpacity>
                 </View>
             </View>
@@ -250,10 +297,28 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         alignItems: 'center',
         justifyContent: 'center',
+        position: 'relative',
     },
     requestsButtonText: {
         fontSize: 18,
         color: darkTheme.colors.text,
+    },
+    requestsBadge: {
+        position: 'absolute',
+        top: -4,
+        right: -6,
+        minWidth: 18,
+        height: 18,
+        paddingHorizontal: 4,
+        borderRadius: 9,
+        backgroundColor: '#ef4444',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    requestsBadgeText: {
+        color: '#fff',
+        fontSize: 10,
+        fontWeight: '700',
     },
     searchFriendsButton: {
         backgroundColor: darkTheme.colors.primary,

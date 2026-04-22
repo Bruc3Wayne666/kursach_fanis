@@ -50,6 +50,16 @@ const usersSlice = createSlice({
             state.searchResults = [];
             state.searchError = null;
         },
+        updateUserRelation: (state, action) => {
+            const { userId, relation } = action.payload;
+            const user = state.searchResults.find(u => u.id === userId);
+            if (user) {
+                user.relation = {
+                    ...(user.relation || {}),
+                    ...relation,
+                };
+            }
+        },
         updateUserFollowStatus: (state, action) => {
             const { userId, isFollowing } = action.payload;
             const user = state.searchResults.find(u => u.id === userId);
@@ -92,5 +102,5 @@ const usersSlice = createSlice({
     },
 });
 
-export const { clearSearch, updateUserFollowStatus } = usersSlice.actions;
+export const { clearSearch, updateUserRelation, updateUserFollowStatus } = usersSlice.actions;
 export default usersSlice.reducer;

@@ -6,19 +6,30 @@ import {
     TouchableOpacity,
     Image
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useSelector } from 'react-redux';
 import { darkTheme } from '../themes/dark';
-import {API_BASE_URL, API_FILE_URL} from "../utils/constants.ts";
+import { API_FILE_URL } from "../utils/constants.ts";
+import Avatar from './Avatar';
+import { formatPostDateTime } from '../utils/format';
 
 interface Post {
     id: string;
     title: string;
     content: string;
     author: string;
+    userId?: string;
     createdAt: string;
     likesCount: number;
     commentsCount: number;
     image?: string;
     isLiked?: boolean;
+    User?: {
+        id: string;
+        username: string;
+        name: string;
+        avatar?: string;
+    };
 }
 
 // В PostCard.tsx измени интерфейс:
@@ -31,6 +42,8 @@ interface PostCardProps {
 }
 
 export default function PostCard({ post, onPress, onLike, onComment }: PostCardProps) {
+    const navigation = useNavigation<any>();
+    const currentUser = useSelector((state: any) => state.auth.user);
     // const handleLike = () => {
     //     onLike?.(post.id, post.isLiked || false);
     // };
@@ -76,13 +89,43 @@ export default function PostCard({ post, onPress, onLike, onComment }: PostCardP
     };
 
     const imageUrl = getImageUrl();
+    const authorName = post.User?.name || post.author || 'Аноним';
+    const authorId = post.User?.id || post.userId;
+
+    const handleAuthorPress = () => {
+        if (!authorId) {
+            return;
+        }
+
+        if (String(authorId) === String(currentUser?.id)) {
+            navigation.navigate('Main', { screen: 'Profile' });
+            return;
+        }
+
+        navigation.navigate('UserProfile', { userId: authorId });
+    };
 
     return (
         <View style={styles.container}>
-            <TouchableOpacity onPress={onPress}>
-                <Text style={styles.author}>{post.author}</Text>
-                <Text style={styles.date}>{post.createdAt}</Text>
+            <TouchableOpacity
+                style={styles.header}
+                disabled={!authorId}
+                onPress={handleAuthorPress}
+                activeOpacity={0.8}
+            >
+                <Avatar
+                    avatar={post.User?.avatar}
+                    name={post.User?.name || post.author}
+                    username={post.User?.username}
+                    size={42}
+                />
+                <View style={styles.headerInfo}>
+                    <Text style={styles.author}>{authorName}</Text>
+                    <Text style={styles.date}>{formatPostDateTime(post.createdAt)}</Text>
+                </View>
+            </TouchableOpacity>
 
+            <TouchableOpacity onPress={onPress} activeOpacity={0.9}>
                 {post.title && (
                     <Text style={styles.title}>{post.title}</Text>
                 )}
@@ -119,7 +162,7 @@ export default function PostCard({ post, onPress, onLike, onComment }: PostCardP
                     <Text style={[
                         styles.actionText,
                         post.isLiked && styles.liked,
-                        isLiking && { opacity: 0.5 } // Визуальный фидбек
+                        isLiking && styles.actionTextDisabled
                     ]}>
                         {post.isLiked ? '❤️' : '🤍'} {post.likesCount}
                     </Text>
@@ -142,6 +185,15 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         borderWidth: 1,
         borderColor: darkTheme.colors.border,
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    headerInfo: {
+        flex: 1,
+        marginLeft: 12,
     },
     author: {
         color: darkTheme.colors.primary,
@@ -200,6 +252,9 @@ const styles = StyleSheet.create({
     actionText: {
         color: darkTheme.colors.textSecondary,
         fontSize: 14,
+    },
+    actionTextDisabled: {
+        opacity: 0.5,
     },
     liked: {
         color: '#ff375f',

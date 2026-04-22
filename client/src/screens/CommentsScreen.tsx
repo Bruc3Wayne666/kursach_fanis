@@ -1,5 +1,5 @@
 // src/screens/CommentsScreen.tsx - ИСПРАВЛЕННЫЙ КОД
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     View,
     Text,
@@ -14,10 +14,10 @@ import {
     RefreshControl // 🔥 ДОБАВЛЯЕМ ИМПОРТ
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useSelector, useDispatch } from 'react-redux';
 import { darkTheme } from '../themes/dark';
 import { api } from '../services/api';
-import {API_BASE_URL, API_FILE_URL} from "../utils/constants.ts";
+import Avatar from '../components/Avatar';
+import { formatPostDateTime } from '../utils/format';
 
 interface Comment {
     id: string;
@@ -43,8 +43,6 @@ interface CommentsScreenProps {
 
 export default function CommentsScreen({ route, navigation }: CommentsScreenProps) {
     const { postId, onCommentAdded } = route.params;
-    const user = useSelector((state: any) => state.auth.user);
-    const dispatch = useDispatch();
 
     const [comments, setComments] = useState<Comment[]>([]);
     const [commentText, setCommentText] = useState('');
@@ -52,11 +50,7 @@ export default function CommentsScreen({ route, navigation }: CommentsScreenProp
     const [submitting, setSubmitting] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
 
-    useEffect(() => {
-        loadComments();
-    }, [postId]);
-
-    const loadComments = async () => {
+    const loadComments = useCallback(async () => {
         try {
             const response = await api.get(`/posts/${postId}/comments`);
             setComments(response.data.comments || []);
@@ -66,7 +60,11 @@ export default function CommentsScreen({ route, navigation }: CommentsScreenProp
         } finally {
             setLoading(false);
         }
-    };
+    }, [postId]);
+
+    useEffect(() => {
+        loadComments();
+    }, [loadComments]);
 
     const onRefresh = async () => {
         setRefreshing(true);
@@ -100,34 +98,20 @@ export default function CommentsScreen({ route, navigation }: CommentsScreenProp
         }
     };
 
-    const getAvatarUrl = (avatarPath: string | null) => {
-        if (!avatarPath) return null;
-
-        if (avatarPath.startsWith('http')) {
-            return avatarPath;
-        }
-
-        // return `http://192.168.0.116:5000${avatarPath}`;
-        return `${API_BASE_URL}${avatarPath}`;
-    };
-
     const renderCommentItem = ({ item }: { item: Comment }) => (
         <View style={styles.commentItem}>
             <View style={styles.commentHeader}>
-                <View style={styles.avatarContainer}>
-                    {item.User.avatar ? (
-                        <Text style={styles.avatarText}>👤</Text>
-                    ) : (
-                        <Text style={styles.avatarText}>
-                            {item.User.name.charAt(0).toUpperCase()}
-                        </Text>
-                    )}
-                </View>
+                <Avatar
+                    avatar={item.User.avatar}
+                    name={item.User.name}
+                    username={item.User.username}
+                    size={36}
+                    style={styles.avatarContainer}
+                    textStyle={styles.avatarText}
+                />
                 <View style={styles.commentInfo}>
                     <Text style={styles.commentAuthor}>{item.User.name}</Text>
-                    <Text style={styles.commentTime}>
-                        {new Date(item.createdAt).toLocaleString('ru-RU')}
-                    </Text>
+                    <Text style={styles.commentTime}>{formatPostDateTime(item.createdAt)}</Text>
                 </View>
             </View>
             <Text style={styles.commentContent}>{item.content}</Text>

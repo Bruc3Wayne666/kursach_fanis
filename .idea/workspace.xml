@@ -5,72 +5,181 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="dd5cd612-e12a-4b20-822d-8fb1628280b6" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/client - Copy/src/components/CreatePostModal.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client - Copy/src/components/PostCard.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client - Copy/src/navigation/AppNavigator.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client - Copy/src/screens/CommentsScreen.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client - Copy/src/screens/EditProfileScreen.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client - Copy/src/screens/FeedScreen.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client - Copy/src/screens/FollowListScreen.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client - Copy/src/screens/FollowersScreen.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client - Copy/src/screens/LoginScreen.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client - Copy/src/screens/MessagesScreen.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client - Copy/src/screens/ProfileScreen.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client - Copy/src/screens/RegisterScreen.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client - Copy/src/screens/SearchScreen.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client - Copy/src/services/api.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client - Copy/src/store/index.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client - Copy/src/store/slices/authSlice.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client - Copy/src/store/slices/messagesSlice.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client - Copy/src/store/slices/postsSlice.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client - Copy/src/store/slices/usersSlice.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client - Copy/src/themes/dark.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client - Copy/src/utils/authLoader.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client - Copy/src/utils/constants.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client - Copy/src/utils/storage.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client/src/components/ChatItem.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client/src/components/MessageBubble.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client/src/components/UserSearchModal.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client/src/screens/ChatScreen.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client/src/screens/ConversationInfoScreen.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client/src/screens/CreateConversationScreen.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client/src/screens/FriendRequestScreen.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client/src/screens/FriendsScreen.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client/src/screens/UserProfileScreen.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client/src/services/socket.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/client/src/store/slices/conversationsSlice.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client" beforeDir="false" afterPath="$PROJECT_DIR$/client" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client - Copy" beforeDir="false" afterPath="$PROJECT_DIR$/client - Copy" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client - Copy/App.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/client - Copy/App.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client - Copy/android/app/build.gradle" beforeDir="false" afterPath="$PROJECT_DIR$/client - Copy/android/app/build.gradle" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client - Copy/android/app/src/main/AndroidManifest.xml" beforeDir="false" afterPath="$PROJECT_DIR$/client - Copy/android/app/src/main/AndroidManifest.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client - Copy/android/settings.gradle" beforeDir="false" afterPath="$PROJECT_DIR$/client - Copy/android/settings.gradle" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client - Copy/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/client - Copy/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client - Copy/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/client - Copy/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/App.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/App.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/android/app/build.gradle" beforeDir="false" afterPath="$PROJECT_DIR$/client/android/app/build.gradle" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/android/app/src/main/AndroidManifest.xml" beforeDir="false" afterPath="$PROJECT_DIR$/client/android/app/src/main/AndroidManifest.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/client/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/client/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/CreatePostModal.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/components/CreatePostModal.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/PostCard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/components/PostCard.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/navigation/AppNavigator.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/navigation/AppNavigator.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/screens/CommentsScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/screens/CommentsScreen.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/screens/EditProfileScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/screens/EditProfileScreen.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/screens/FeedScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/screens/FeedScreen.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/screens/FollowListScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/screens/FollowListScreen.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/screens/MessagesScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/screens/MessagesScreen.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/screens/ProfileScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/screens/ProfileScreen.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/screens/SearchScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/screens/SearchScreen.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/services/api.ts" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/services/api.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/store/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/store/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/store/slices/authSlice.ts" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/store/slices/authSlice.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/store/slices/messagesSlice.ts" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/store/slices/messagesSlice.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/store/slices/postsSlice.ts" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/store/slices/postsSlice.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/store/slices/usersSlice.ts" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/store/slices/usersSlice.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/utils/authLoader.ts" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/utils/authLoader.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/utils/constants.ts" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/utils/constants.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/utils/storage.ts" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/utils/storage.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/.bundle/config" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/.eslintrc.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/.prettierrc.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/.watchmanconfig" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/App.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/Gemfile" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/__tests__/App.test.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/android/app/build.gradle" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/android/app/debug.keystore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/android/app/proguard-rules.pro" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/android/app/src/main/AndroidManifest.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/android/app/src/main/java/com/client_new/MainActivity.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/android/app/src/main/java/com/client_new/MainApplication.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/android/app/src/main/res/drawable/rn_edit_text_material.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/android/app/src/main/res/mipmap-hdpi/ic_launcher.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/android/app/src/main/res/mipmap-mdpi/ic_launcher.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/android/app/src/main/res/values/strings.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/android/app/src/main/res/values/styles.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/android/build.gradle" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/android/gradle.properties" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/android/gradle/wrapper/gradle-wrapper.jar" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/android/gradle/wrapper/gradle-wrapper.properties" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/android/gradlew" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/android/gradlew.bat" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/android/settings.gradle" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/app.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/babel.config.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/index.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/ios/.xcode.env" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/ios/Podfile" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/ios/client_new.xcodeproj/project.pbxproj" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/ios/client_new.xcodeproj/xcshareddata/xcschemes/client_new.xcscheme" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/ios/client_new/AppDelegate.swift" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/ios/client_new/Images.xcassets/AppIcon.appiconset/Contents.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/ios/client_new/Images.xcassets/Contents.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/ios/client_new/Info.plist" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/ios/client_new/LaunchScreen.storyboard" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/ios/client_new/PrivacyInfo.xcprivacy" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/jest.config.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/metro.config.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/package-lock.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/package.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/src/components/CreatePostModal.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/src/components/PostCard.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/src/navigation/AppNavigator.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/src/screens/CommentsScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/src/screens/EditProfileScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/src/screens/FeedScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/src/screens/FollowListScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/src/screens/FollowersScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/src/screens/LoginScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/src/screens/MessagesScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/src/screens/ProfileScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/src/screens/RegisterScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/src/screens/SearchScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/src/services/api.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/src/store/index.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/src/store/slices/authSlice.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/src/store/slices/messagesSlice.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/src/store/slices/postsSlice.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/src/store/slices/usersSlice.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/src/themes/dark.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/src/utils/authLoader.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/src/utils/constants.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/src/utils/storage.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client - Copy/client - Copy/tsconfig.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/.bundle/config" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/.eslintrc.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/.prettierrc.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/.watchmanconfig" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/App.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/Gemfile" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/__tests__/App.test.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/android/app/build.gradle" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/android/app/debug.keystore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/android/app/proguard-rules.pro" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/android/app/src/main/AndroidManifest.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/android/app/src/main/java/com/client_new/MainActivity.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/android/app/src/main/java/com/client_new/MainApplication.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/android/app/src/main/res/drawable/rn_edit_text_material.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/android/app/src/main/res/mipmap-hdpi/ic_launcher.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/android/app/src/main/res/mipmap-mdpi/ic_launcher.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/android/app/src/main/res/values/strings.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/android/app/src/main/res/values/styles.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/android/build.gradle" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/android/gradle.properties" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/android/gradle/wrapper/gradle-wrapper.jar" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/android/gradle/wrapper/gradle-wrapper.properties" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/android/gradlew" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/android/gradlew.bat" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/android/settings.gradle" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/app.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/babel.config.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/index.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/ios/.xcode.env" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/ios/Podfile" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/ios/client_new.xcodeproj/project.pbxproj" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/ios/client_new.xcodeproj/xcshareddata/xcschemes/client_new.xcscheme" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/ios/client_new/AppDelegate.swift" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/ios/client_new/Images.xcassets/AppIcon.appiconset/Contents.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/ios/client_new/Images.xcassets/Contents.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/ios/client_new/Info.plist" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/ios/client_new/LaunchScreen.storyboard" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/ios/client_new/PrivacyInfo.xcprivacy" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/jest.config.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/metro.config.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/package-lock.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/package.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/components/ChatItem.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/components/CreatePostModal.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/components/MessageBubble.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/components/PostCard.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/components/UserSearchModal.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/navigation/AppNavigator.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/screens/ChatScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/screens/CommentsScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/screens/ConversationInfoScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/screens/CreateConversationScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/screens/EditProfileScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/screens/FeedScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/screens/FollowListScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/screens/FollowersScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/screens/FriendRequestScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/screens/FriendsScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/screens/LoginScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/screens/MessagesScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/screens/ProfileScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/screens/RegisterScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/screens/SearchScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/screens/UserProfileScreen.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/services/api.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/services/socket.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/store/index.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/store/slices/authSlice.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/store/slices/conversationsSlice.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/store/slices/messagesSlice.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/store/slices/postsSlice.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/store/slices/usersSlice.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/themes/dark.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/utils/authLoader.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/utils/constants.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/src/utils/storage.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/client/client/tsconfig.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/client - Copy" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/client - Copy/client - Copy" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/client" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/controllers/conversationController.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/controllers/conversationController.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/controllers/messageController.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/controllers/messageController.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/controllers/userController.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/controllers/userController.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/models/Message.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/models/Message.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/routes/conversations.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/routes/conversations.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/routes/users.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/routes/users.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/server.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/server.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -214,7 +323,7 @@
       <workItem from="1774255080666" duration="1877000" />
       <workItem from="1775004554540" duration="14000" />
       <workItem from="1775103959834" duration="595000" />
-      <workItem from="1776885929733" duration="3230000" />
+      <workItem from="1776885929733" duration="7598000" />
     </task>
     <servers />
   </component>

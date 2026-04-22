@@ -16,13 +16,14 @@ const authSlice = createSlice({
             state.error = null;
             state.isLoading = false;
             storageHelper.setToken(action.payload.token);
+            storageHelper.setUser(action.payload.user);
         },
         logout: (state) => {
             state.user = null;
             state.token = null;
             state.error = null;
             state.isLoading = false;
-            storageHelper.removeToken();
+            storageHelper.clearAuth();
         },
         setLoading: (state, action) => {
             state.isLoading = action.payload;
@@ -41,6 +42,7 @@ const authSlice = createSlice({
                     ...state.user,
                     ...action.payload
                 };
+                storageHelper.setUser(state.user);
             }
         },
     },

@@ -1,5 +1,5 @@
 // src/screens/SearchScreen.tsx - ПОЛНАЯ ВЕРСИЯ
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     View,
     Text,
@@ -8,16 +8,15 @@ import {
     FlatList,
     StyleSheet,
     ActivityIndicator,
-    Alert,
-    Image
+    Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
-import { searchUsers, clearSearch } from '../store/slices/usersSlice';
+import { searchUsers, clearSearch, updateUserRelation } from '../store/slices/usersSlice';
 import { darkTheme } from '../themes/dark';
 import { api } from '../services/api';
-import {API_BASE_URL, API_FILE_URL} from "../utils/constants.ts";
+import Avatar from '../components/Avatar';
 
 export default function SearchScreen() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -27,20 +26,9 @@ export default function SearchScreen() {
     const dispatch = useDispatch();
     const navigation = useNavigation();
     const isFocused = useIsFocused();
+    const currentUser = useSelector((state: any) => state.auth.user);
     const { searchResults, searchLoading, searchError } = useSelector((state: any) => state.users);
     const [friendLoading, setFriendLoading] = useState<string | null>(null);
-
-    // Функция для получения URL аватара
-    const getAvatarUrl = (avatarPath: string | null) => {
-        if (!avatarPath) return 'https://via.placeholder.com/50';
-
-        if (avatarPath.startsWith('http')) {
-            return avatarPath;
-        }
-
-        // return `http://192.168.0.116:5000${avatarPath}`;
-        return `${API_FILE_URL}${avatarPath}`;
-    };
 
     // Polling для обновления друзей
     const pollingRef = useRef<NodeJS.Timeout | null>(null);
@@ -52,7 +40,27 @@ export default function SearchScreen() {
         }
     }, [searchError]);
 
-    const startPolling = () => {
+    const loadFriends = useCallback(async () => {
+        try {
+            setLoadingFriends(true);
+            const response = await api.get('/friends');
+            setFriends(response.data.friends);
+        } catch (error) {
+            console.error('Error loading friends:', error);
+        } finally {
+            setLoadingFriends(false);
+        }
+    }, []);
+
+    const stopPolling = useCallback(() => {
+        if (pollingRef.current) {
+            console.log('🛑 Stopping polling for friends...');
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+        }
+    }, []);
+
+    const startPolling = useCallback(() => {
         if (pollingRef.current || !isFocused || activeTab !== 'friends') return;
 
         console.log('🔄 Starting polling for friends...');
@@ -62,15 +70,7 @@ export default function SearchScreen() {
                 loadFriends();
             }
         }, 10000);
-    };
-
-    const stopPolling = () => {
-        if (pollingRef.current) {
-            console.log('🛑 Stopping polling for friends...');
-            clearInterval(pollingRef.current);
-            pollingRef.current = null;
-        }
-    };
+    }, [activeTab, isFocused, loadFriends]);
 
     useEffect(() => {
         isMountedRef.current = true;
@@ -85,32 +85,20 @@ export default function SearchScreen() {
             isMountedRef.current = false;
             stopPolling();
         };
-    }, [isFocused, activeTab]);
+    }, [activeTab, isFocused, startPolling, stopPolling]);
 
     useEffect(() => {
         if (activeTab === 'friends') {
             loadFriends();
         }
-    }, [activeTab]);
+    }, [activeTab, loadFriends]);
 
     useEffect(() => {
         return () => {
             dispatch(clearSearch());
             stopPolling();
         };
-    }, [dispatch]);
-
-    const loadFriends = async () => {
-        try {
-            setLoadingFriends(true);
-            const response = await api.get('/friends');
-            setFriends(response.data.friends);
-        } catch (error) {
-            console.error('Error loading friends:', error);
-        } finally {
-            setLoadingFriends(false);
-        }
-    };
+    }, [dispatch, stopPolling]);
 
     const handleSearch = () => {
         if (searchQuery.trim().length < 2) {
@@ -124,7 +112,17 @@ export default function SearchScreen() {
         setFriendLoading(userId);
         try {
             console.log('📤 Sending friend request to:', userId);
-            const response = await api.post(`/friends/${userId}/request`);
+            await api.post(`/friends/${userId}/request`);
+
+            dispatch(updateUserRelation({
+                userId,
+                relation: {
+                    isFriend: false,
+                    friendshipStatus: 'pending',
+                    friendshipDirection: 'outgoing',
+                    friendshipId: null,
+                },
+            }));
 
             Alert.alert('Успех', 'Запрос в друзья отправлен');
 
@@ -153,6 +151,10 @@ export default function SearchScreen() {
 
     const viewProfile = (user: any) => {
         console.log('👤 Navigating to user profile:', user.id);
+        if (String(user.id) === String(currentUser?.id)) {
+            navigation.navigate('Main', { screen: 'Profile' });
+            return;
+        }
         navigation.navigate('UserProfile', { userId: user.id });
     };
 
@@ -179,7 +181,14 @@ export default function SearchScreen() {
 
     const renderSearchItem = ({ item }: { item: any }) => {
         const isLoading = friendLoading === item.id;
-        const isFriend = friends.some(f => f.id === item.id);
+        const relation = item.relation || {};
+        const isOwnProfile = relation.isOwnProfile || false;
+        const isFriend = relation.isFriend || friends.some(f => f.id === item.id);
+        const hasOutgoingRequest = relation.friendshipStatus === 'pending' && relation.friendshipDirection === 'outgoing';
+        const hasIncomingRequest = relation.friendshipStatus === 'pending' && relation.friendshipDirection === 'incoming';
+        const showAddFriendButton = !isOwnProfile && !isFriend;
+        const addFriendDisabled = isLoading || hasOutgoingRequest || hasIncomingRequest;
+        const addFriendLabel = hasIncomingRequest ? 'Входящая' : hasOutgoingRequest ? 'Отправлена' : '➕';
 
         return (
             <View style={styles.userCard}>
@@ -187,10 +196,12 @@ export default function SearchScreen() {
                     style={styles.userInfo}
                     onPress={() => viewProfile(item)}
                 >
-                    <Image
-                        source={{ uri: getAvatarUrl(item.avatar) }}
+                    <Avatar
+                        avatar={item.avatar}
+                        name={item.name}
+                        username={item.username}
+                        size={50}
                         style={styles.avatar}
-                        defaultSource={{ uri: 'https://via.placeholder.com/50' }}
                     />
                     <View style={styles.userDetails}>
                         <Text style={styles.userName}>{item.name}</Text>
@@ -204,26 +215,39 @@ export default function SearchScreen() {
                 </TouchableOpacity>
 
                 <View style={styles.actions}>
-                    {!isFriend ? (
+                    {showAddFriendButton ? (
                         <TouchableOpacity
-                            style={styles.addFriendButton}
+                            style={[
+                                styles.addFriendButton,
+                                (hasOutgoingRequest || hasIncomingRequest) && styles.addFriendButtonMuted
+                            ]}
                             onPress={() => handleAddFriend(item.id)}
-                            disabled={isLoading}
+                            disabled={addFriendDisabled}
                         >
                             {isLoading ? (
-                                <ActivityIndicator size="small" color="#fff" />
+                                <ActivityIndicator
+                                    size="small"
+                                    color={(hasOutgoingRequest || hasIncomingRequest) ? darkTheme.colors.text : '#fff'}
+                                />
                             ) : (
-                                <Text style={styles.addFriendText}>➕</Text>
+                                <Text
+                                    style={[
+                                        styles.addFriendText,
+                                        (hasOutgoingRequest || hasIncomingRequest) && styles.addFriendTextMuted,
+                                    ]}
+                                >
+                                    {addFriendLabel}
+                                </Text>
                             )}
                         </TouchableOpacity>
-                    ) : (
+                    ) : isFriend ? (
                         <TouchableOpacity
                             style={styles.chatButton}
                             onPress={() => startChat(item)}
                         >
                             <Text style={styles.chatButtonText}>💬</Text>
                         </TouchableOpacity>
-                    )}
+                    ) : null}
                 </View>
             </View>
         );
@@ -235,10 +259,12 @@ export default function SearchScreen() {
                 style={styles.userInfo}
                 onPress={() => viewProfile(item)}
             >
-                <Image
-                    source={{ uri: getAvatarUrl(item.avatar) }}
+                <Avatar
+                    avatar={item.avatar}
+                    name={item.name}
+                    username={item.username}
+                    size={50}
                     style={styles.avatar}
-                    defaultSource={{ uri: 'https://via.placeholder.com/50' }}
                 />
                 <View style={styles.userDetails}>
                     <Text style={styles.userName}>{item.name}</Text>
@@ -475,15 +501,25 @@ const styles = StyleSheet.create({
     },
     addFriendButton: {
         backgroundColor: darkTheme.colors.primary,
-        width: 40,
+        minWidth: 40,
         height: 40,
         borderRadius: 20,
+        paddingHorizontal: 12,
         alignItems: 'center',
         justifyContent: 'center',
     },
+    addFriendButtonMuted: {
+        backgroundColor: 'transparent',
+        borderWidth: 1,
+        borderColor: darkTheme.colors.border,
+    },
     addFriendText: {
         color: '#fff',
-        fontSize: 16,
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    addFriendTextMuted: {
+        color: darkTheme.colors.text,
     },
     chatButton: {
         backgroundColor: darkTheme.colors.primary,

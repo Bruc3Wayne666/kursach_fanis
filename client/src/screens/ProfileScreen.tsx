@@ -19,8 +19,8 @@ import { api } from '../services/api';
 import { logout } from '../store/slices/authSlice';
 import PostCard from '../components/PostCard';
 import CreatePostModal from '../components/CreatePostModal';
-import {fetchPosts, createPost, toggleLikeAction, fetchUserPosts, clearUserPosts} from '../store/slices/postsSlice';
-import {API_BASE_URL, API_FILE_URL} from "../utils/constants.ts";
+import {createPost, toggleLikeAction, fetchUserPosts, clearUserPosts} from '../store/slices/postsSlice';
+import {API_FILE_URL} from "../utils/constants.ts";
 
 export default function ProfileScreen({ navigation, route }: any) {
     const user = useSelector((state: any) => state.auth.user);
@@ -34,7 +34,7 @@ export default function ProfileScreen({ navigation, route }: any) {
     });
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [postsLoading, setPostsLoading] = useState(false);
+    const [postsLoading, _setPostsLoading] = useState(false);
     const [isCreatePostModalVisible, setIsCreatePostModalVisible] = useState(false);
 
     const pollingRef = useRef<NodeJS.Timeout | null>(null);
@@ -76,43 +76,6 @@ export default function ProfileScreen({ navigation, route }: any) {
     }, [targetUserId, dispatch]);
 
     // 🔥 FIX 3: Правильный useEffect с зависимостями
-    useEffect(() => {
-        isMountedRef.current = true;
-
-        if (isFocused && targetUserId) {
-            loadProfileData();
-            loadUserPosts();
-            startPolling();
-        }
-
-        return () => {
-            isMountedRef.current = false;
-            stopPolling();
-            // 🔥 ОЧИЩАЕМ ПОСТЫ ПРИ ВЫХОДЕ ИЗ ЭКРАНА
-            dispatch(clearUserPosts(targetUserId));
-        };
-    }, [isFocused, targetUserId, loadProfileData, loadUserPosts, dispatch]);
-
-    // 🔥 FIX 4: Обновляем статистику только когда меняется длина постов
-    useEffect(() => {
-        setStats(prev => ({
-            ...prev,
-            posts: userPosts.length
-        }));
-    }, [userPosts.length]); // 🔥 Только длина постов как зависимость
-
-    // 🔥 FIX 5: Стабильная функция для комментариев
-    const handleComment = useCallback((postId: string) => {
-        navigation.navigate('Comments', {
-            postId,
-            onCommentAdded: () => {
-                setTimeout(() => {
-                    loadUserPosts();
-                }, 500);
-            }
-        });
-    }, [navigation, loadUserPosts]);
-
     // Polling для real-time обновлений
     const startPolling = useCallback(() => {
         if (pollingRef.current) return;
@@ -133,6 +96,40 @@ export default function ProfileScreen({ navigation, route }: any) {
             pollingRef.current = null;
         }
     }, []);
+
+    useEffect(() => {
+        isMountedRef.current = true;
+
+        if (isFocused && targetUserId) {
+            loadProfileData();
+            loadUserPosts();
+            startPolling();
+        }
+
+        return () => {
+            isMountedRef.current = false;
+            stopPolling();
+            dispatch(clearUserPosts(targetUserId));
+        };
+    }, [isFocused, targetUserId, loadProfileData, loadUserPosts, startPolling, stopPolling, dispatch]);
+
+    useEffect(() => {
+        setStats(prev => ({
+            ...prev,
+            posts: userPosts.length
+        }));
+    }, [userPosts.length]);
+
+    const handleComment = useCallback((postId: string) => {
+        navigation.navigate('Comments', {
+            postId,
+            onCommentAdded: () => {
+                setTimeout(() => {
+                    loadUserPosts();
+                }, 500);
+            }
+        });
+    }, [navigation, loadUserPosts]);
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
@@ -167,14 +164,13 @@ export default function ProfileScreen({ navigation, route }: any) {
         }
     }, [dispatch, loadUserPosts]);
 
-    const handleLike = async (postId: string) => {
+    const handleLike = useCallback(async (postId: string) => {
         try {
-            // Добавь 'as any' вот сюда
             return await dispatch(toggleLikeAction(postId) as any).unwrap();
-        } catch (err) {
+        } catch {
             Alert.alert('Ошибка', 'Не удалось изменить лайк');
         }
-    };
+    }, [dispatch]);
 
     const getAvatarUrl = useCallback((avatarPath: string | null) => {
         if (!avatarPath) return 'https://via.placeholder.com/100';
@@ -183,16 +179,16 @@ export default function ProfileScreen({ navigation, route }: any) {
             return avatarPath;
         }
 
-        // return `http://192.168.0.116:5000${avatarPath}`;
-        return `${API_BASE_URL}${avatarPath}`;
+        return `${API_FILE_URL}${avatarPath}`;
     }, []);
 
     const navigateToFollowList = useCallback((type: 'followers' | 'following') => {
         navigation.navigate('FollowList', {
             userId: targetUserId,
-            type
+            type,
+            onRelationChanged: loadProfileData,
         });
-    }, [navigation, targetUserId]);
+    }, [navigation, targetUserId, loadProfileData]);
 
     const handleLogout = useCallback(() => {
         dispatch(logout());
@@ -212,6 +208,8 @@ export default function ProfileScreen({ navigation, route }: any) {
             }
         }, 1000);
     }, [isFocused, startPolling]);
+
+    const emptyListContent = styles.emptyListContent;
 
     // 🔥 FIX 9: Стабильная функция рендеринга постов
     const renderPostItem = useCallback(({ item }: { item: any }) => (
@@ -250,14 +248,6 @@ export default function ProfileScreen({ navigation, route }: any) {
                     {isOwnProfile ? 'Профиль' : 'Профиль пользователя'}
                 </Text>
                 <View style={styles.headerButtons}>
-                    {isOwnProfile && (
-                        <TouchableOpacity
-                            style={styles.createPostButton}
-                            onPress={handleOpenModal}
-                        >
-                            <Text style={styles.createPostButtonText}>+ Пост</Text>
-                        </TouchableOpacity>
-                    )}
                     {isOwnProfile && (
                         <TouchableOpacity onPress={handleLogout}>
                             <Text style={styles.logoutButton}>Выйти</Text>
@@ -318,15 +308,6 @@ export default function ProfileScreen({ navigation, route }: any) {
                                     <Text style={styles.statLabel}>Подписки</Text>
                                 </TouchableOpacity>
 
-                                {isOwnProfile && (
-                                    <TouchableOpacity
-                                        style={styles.friendsButton}
-                                        onPress={() => navigation.navigate('Friends')}
-                                    >
-                                        <Text style={styles.friendsButtonText}>👥 Друзья</Text>
-                                    </TouchableOpacity>
-                                )}
-
                                 <View style={styles.statItem}>
                                     <Text style={styles.statNumber}>{stats.posts}</Text>
                                     <Text style={styles.statLabel}>Посты</Text>
@@ -343,10 +324,10 @@ export default function ProfileScreen({ navigation, route }: any) {
                                     </TouchableOpacity>
 
                                     <TouchableOpacity
-                                        style={styles.createPostMainButton}
-                                        onPress={handleOpenModal}
+                                        style={styles.friendsButton}
+                                        onPress={() => navigation.navigate('Friends')}
                                     >
-                                        <Text style={styles.createPostMainButtonText}>+ Создать пост</Text>
+                                        <Text style={styles.friendsButtonText}>👥 Друзья</Text>
                                     </TouchableOpacity>
                                 </View>
                             )}
@@ -355,6 +336,14 @@ export default function ProfileScreen({ navigation, route }: any) {
                                 <Text style={styles.postsTitle}>
                                     {isOwnProfile ? 'Мои посты' : 'Посты пользователя'}
                                 </Text>
+                                {isOwnProfile && (
+                                    <TouchableOpacity
+                                        style={styles.createInlineButton}
+                                        onPress={handleOpenModal}
+                                    >
+                                        <Text style={styles.createInlineButtonText}>+ Пост</Text>
+                                    </TouchableOpacity>
+                                )}
                                 {postsLoading && (
                                     <ActivityIndicator size="small" color={darkTheme.colors.primary} />
                                 )}
@@ -384,7 +373,7 @@ export default function ProfileScreen({ navigation, route }: any) {
                             </View>
                         )
                     }
-                    contentContainerStyle={userPosts.length === 0 ? { flexGrow: 1 } : null}
+                    contentContainerStyle={userPosts.length === 0 ? emptyListContent : undefined}
                 />
             )}
 
@@ -423,17 +412,6 @@ const styles = StyleSheet.create({
         color: darkTheme.colors.text,
         fontSize: 24,
         fontWeight: 'bold',
-    },
-    createPostButton: {
-        backgroundColor: darkTheme.colors.primary,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 16,
-    },
-    createPostButtonText: {
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: '600',
     },
     logoutButton: {
         color: '#ef4444',
@@ -539,25 +517,12 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
     },
-    createPostMainButton: {
-        flex: 1,
-        backgroundColor: darkTheme.colors.primary,
-        padding: 15,
-        borderRadius: 8,
-        alignItems: 'center',
-    },
-    createPostMainButtonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '600',
-    },
     friendsButton: {
+        flex: 1,
         backgroundColor: darkTheme.colors.card,
         padding: 15,
         borderRadius: 8,
         alignItems: 'center',
-        marginBottom: 10,
-        minWidth: 120,
         borderWidth: 1,
         borderColor: darkTheme.colors.border,
     },
@@ -571,11 +536,24 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: 15,
+        gap: 10,
     },
     postsTitle: {
         color: darkTheme.colors.text,
         fontSize: 20,
         fontWeight: 'bold',
+        flex: 1,
+    },
+    createInlineButton: {
+        backgroundColor: darkTheme.colors.primary,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 18,
+    },
+    createInlineButtonText: {
+        color: '#fff',
+        fontSize: 13,
+        fontWeight: '600',
     },
     emptyPostsContainer: {
         alignItems: 'center',
@@ -605,5 +583,8 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 14,
         fontWeight: '600',
+    },
+    emptyListContent: {
+        flexGrow: 1,
     },
 });

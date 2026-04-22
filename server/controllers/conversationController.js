@@ -1,95 +1,96 @@
-// controllers/conversationController.js
 const { Conversation, User, ConversationMember, Message } = require('../models/associations');
 const { Op } = require('sequelize');
+
+const loadConversationForResponse = async (conversationId) => Conversation.findByPk(conversationId, {
+    include: [{
+        model: User,
+        as: 'Members',
+        attributes: ['id', 'username', 'name', 'avatar', 'isOnline'],
+        through: { attributes: ['role', 'joinedAt'] }
+    }]
+});
+
+const ensureAdminExists = async (conversationId) => {
+    const adminCount = await ConversationMember.count({
+        where: {
+            conversationId,
+            role: 'admin'
+        }
+    });
+
+    if (adminCount > 0) {
+        return;
+    }
+
+    const nextAdmin = await ConversationMember.findOne({
+        where: { conversationId },
+        order: [['createdAt', 'ASC']]
+    });
+
+    if (nextAdmin) {
+        await nextAdmin.update({ role: 'admin' });
+    }
+};
+
+const getNormalizedMemberIds = (memberIds = [], creatorId = null) => (
+    [...new Set((Array.isArray(memberIds) ? memberIds : []).filter(Boolean))]
+        .filter((memberId) => String(memberId) !== String(creatorId))
+);
 
 exports.createConversation = async (req, res) => {
     try {
         const { name, memberIds, description } = req.body;
         const creatorId = req.userId;
+        const normalizedMemberIds = getNormalizedMemberIds(memberIds, creatorId);
 
-        console.log('🔄 Creating NEW conversation:', {
-            name,
-            memberIds: memberIds || [],
-            memberCount: memberIds ? memberIds.length : 0,
-            description,
-            creatorId
-        });
-
-        // Валидация
-        if (!memberIds || !Array.isArray(memberIds) || memberIds.length < 2) {
-            return res.status(400).json({ error: 'Select at least 2 participants' });
+        if (normalizedMemberIds.length < 1) {
+            return res.status(400).json({ error: 'Select at least 1 participant' });
         }
 
         if (!name || !name.trim()) {
             return res.status(400).json({ error: 'Conversation name is required' });
         }
 
-        // 🔥 ГАРАНТИРУЕМ УНИКАЛЬНОСТЬ БЕСЕДЫ ПОСРЕДСТВОМ ТОЧНОЙ ВРЕМЕННОЙ МЕТКИ
-        const uniqueName = `${name.trim()}_${Date.now()}`;
-
-        // Проверяем только существование пользователей
         const members = await User.findAll({
-            where: { id: { [Op.in]: memberIds } }
+            where: { id: { [Op.in]: normalizedMemberIds } }
         });
 
-        if (members.length !== memberIds.length) {
+        if (members.length !== normalizedMemberIds.length) {
             return res.status(404).json({ error: 'Some users not found' });
         }
 
-        // 🔥 ВСЕГДА СОЗДАЁМ НОВУЮ БЕСЕДУ - ПРИ ЭТОМ ПРЕДОСТАВЛЯЕМ УНИКАЛЬНОЕ ИМЯ
         const conversation = await Conversation.create({
-            name: uniqueName,
-            description: description?.trim() || `Conversation created by ${req.user.name}`,
+            name: name.trim(),
+            description: typeof description === 'string' ? description.trim() : '',
             isGroup: true
         });
 
-        console.log('✅ NEW conversation created with ID:', conversation.id, 'Name:', uniqueName);
-
-        // Добавляем создателя как админа
         await ConversationMember.create({
             userId: creatorId,
             conversationId: conversation.id,
             role: 'admin'
         });
 
-        // Добавляем участников
-        const memberPromises = memberIds.map(memberId =>
-            ConversationMember.create({
+        await Promise.all(
+            normalizedMemberIds.map((memberId) => ConversationMember.create({
                 userId: memberId,
                 conversationId: conversation.id,
                 role: 'member'
-            })
+            }))
         );
 
-        await Promise.all(memberPromises);
-
-        console.log(`✅ Added ${memberIds.length + 1} members to NEW conversation`);
-
-        // Загружаем данные для ответа
-        const conversationWithMembers = await Conversation.findByPk(conversation.id, {
-            include: [
-                {
-                    model: User,
-                    as: 'Members',
-                    attributes: ['id', 'username', 'name', 'avatar', 'isOnline'],
-                    through: { attributes: ['role'] }
-                }
-            ]
-        });
+        const conversationWithMembers = await loadConversationForResponse(conversation.id);
 
         res.status(201).json({
-            message: 'New conversation created successfully',
+            message: 'Conversation created successfully',
             conversation: conversationWithMembers
         });
-
     } catch (error) {
-        console.error('❌ Create NEW conversation error:', error);
+        console.error('Create conversation error:', error);
         res.status(500).json({ error: 'Failed to create conversation: ' + error.message });
     }
 };
 
-
-// controllers/conversationController.js - ОБНОВЛЯЕМ getConversations
 exports.getConversations = async (req, res) => {
     try {
         const userId = req.userId;
@@ -97,18 +98,18 @@ exports.getConversations = async (req, res) => {
         const conversations = await Conversation.findAll({
             include: [{
                 model: User,
-                as: 'Members', // 🔥 ИСПОЛЬЗУЕМ ПРАВИЛЬНОЕ ИМЯ
+                as: 'Members',
                 where: { id: userId },
                 attributes: [],
                 through: { attributes: [] }
             }, {
                 model: User,
-                as: 'Members', // 🔥 ИСПОЛЬЗУЕМ ПРАВИЛЬНОЕ ИМЯ
+                as: 'Members',
                 attributes: ['id', 'username', 'name', 'avatar', 'isOnline'],
                 through: { attributes: ['role'] }
             }, {
                 model: Message,
-                as: 'Messages', // 🔥 ИСПОЛЬЗУЕМ ПРАВИЛЬНОЕ ИМЯ
+                as: 'Messages',
                 limit: 1,
                 order: [['createdAt', 'DESC']],
                 include: [{
@@ -120,7 +121,6 @@ exports.getConversations = async (req, res) => {
             order: [[{ model: Message, as: 'Messages' }, 'createdAt', 'DESC']]
         });
 
-        // Добавляем количество непрочитанных сообщений
         const conversationsWithUnread = await Promise.all(
             conversations.map(async (conversation) => {
                 const unreadCount = await Message.count({
@@ -145,62 +145,11 @@ exports.getConversations = async (req, res) => {
     }
 };
 
-exports.addMembers = async (req, res) => {
-    try {
-        const { conversationId } = req.params;
-        const { memberIds } = req.body;
-        const userId = req.userId;
-
-        // Проверяем права (только админ может добавлять)
-        const member = await ConversationMember.findOne({
-            where: {
-                conversationId,
-                userId,
-                role: 'admin'
-            }
-        });
-
-        if (!member) {
-            return res.status(403).json({ error: 'Only admin can add members' });
-        }
-
-        const existingMembers = await ConversationMember.findAll({
-            where: {
-                conversationId,
-                userId: { [Op.in]: memberIds }
-            }
-        });
-
-        const existingMemberIds = existingMembers.map(m => m.userId);
-        const newMemberIds = memberIds.filter(id => !existingMemberIds.includes(id));
-
-        if (newMemberIds.length === 0) {
-            return res.status(400).json({ error: 'All users are already members' });
-        }
-
-        const memberPromises = newMemberIds.map(memberId =>
-            ConversationMember.create({
-                userId: memberId,
-                conversationId,
-                role: 'member'
-            })
-        );
-
-        await Promise.all(memberPromises);
-
-        res.json({ message: 'Members added successfully' });
-    } catch (error) {
-        console.error('Add members error:', error);
-        res.status(500).json({ error: 'Internal server error' });
-    }
-};
-
 exports.getConversation = async (req, res) => {
     try {
         const { conversationId } = req.params;
         const userId = req.userId;
 
-        // Проверяем что пользователь участник беседы
         const isMember = await ConversationMember.findOne({
             where: { conversationId, userId }
         });
@@ -209,14 +158,7 @@ exports.getConversation = async (req, res) => {
             return res.status(403).json({ error: 'Access denied' });
         }
 
-        const conversation = await Conversation.findByPk(conversationId, {
-            include: [{
-                model: User,
-                as: 'Members',
-                attributes: ['id', 'username', 'name', 'avatar', 'isOnline'],
-                through: { attributes: ['role'] }
-            }]
-        });
+        const conversation = await loadConversationForResponse(conversationId);
 
         if (!conversation) {
             return res.status(404).json({ error: 'Conversation not found' });
@@ -229,15 +171,13 @@ exports.getConversation = async (req, res) => {
     }
 };
 
-// В conversationController.js ДОБАВЬ:
-exports.updateConversation = async (req, res) => {
+exports.addMembers = async (req, res) => {
     try {
         const { conversationId } = req.params;
-        const { name, avatar, description } = req.body;
+        const { memberIds } = req.body;
         const userId = req.userId;
 
-        // Проверяем что пользователь админ беседы
-        const member = await ConversationMember.findOne({
+        const adminMembership = await ConversationMember.findOne({
             where: {
                 conversationId,
                 userId,
@@ -245,88 +185,200 @@ exports.updateConversation = async (req, res) => {
             }
         });
 
-        if (!member) {
+        if (!adminMembership) {
+            return res.status(403).json({ error: 'Only admin can add members' });
+        }
+
+        const normalizedMemberIds = getNormalizedMemberIds(memberIds, userId);
+
+        if (normalizedMemberIds.length === 0) {
+            return res.status(400).json({ error: 'Select at least 1 user' });
+        }
+
+        const users = await User.findAll({
+            where: { id: { [Op.in]: normalizedMemberIds } }
+        });
+
+        if (users.length !== normalizedMemberIds.length) {
+            return res.status(404).json({ error: 'Some users not found' });
+        }
+
+        const existingMembers = await ConversationMember.findAll({
+            where: {
+                conversationId,
+                userId: { [Op.in]: normalizedMemberIds }
+            }
+        });
+
+        const existingMemberIds = new Set(existingMembers.map((member) => String(member.userId)));
+        const newMemberIds = normalizedMemberIds.filter((memberId) => !existingMemberIds.has(String(memberId)));
+
+        if (newMemberIds.length === 0) {
+            return res.status(400).json({ error: 'All users are already members' });
+        }
+
+        await Promise.all(
+            newMemberIds.map((memberId) => ConversationMember.create({
+                userId: memberId,
+                conversationId,
+                role: 'member'
+            }))
+        );
+
+        const conversation = await loadConversationForResponse(conversationId);
+
+        res.json({
+            message: 'Members added successfully',
+            conversation
+        });
+    } catch (error) {
+        console.error('Add members error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+exports.removeMember = async (req, res) => {
+    try {
+        const { conversationId, memberId } = req.params;
+        const userId = req.userId;
+
+        const adminMembership = await ConversationMember.findOne({
+            where: {
+                conversationId,
+                userId,
+                role: 'admin'
+            }
+        });
+
+        if (!adminMembership) {
+            return res.status(403).json({ error: 'Only admin can remove members' });
+        }
+
+        if (String(memberId) === String(userId)) {
+            return res.status(400).json({ error: 'Use leave conversation action for yourself' });
+        }
+
+        const targetMembership = await ConversationMember.findOne({
+            where: {
+                conversationId,
+                userId: memberId
+            }
+        });
+
+        if (!targetMembership) {
+            return res.status(404).json({ error: 'Member not found' });
+        }
+
+        await targetMembership.destroy();
+        await ensureAdminExists(conversationId);
+
+        const conversation = await loadConversationForResponse(conversationId);
+
+        res.json({
+            message: 'Member removed successfully',
+            conversation
+        });
+    } catch (error) {
+        console.error('Remove member error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+exports.updateConversation = async (req, res) => {
+    try {
+        const { conversationId } = req.params;
+        const { name, avatar, description } = req.body;
+        const userId = req.userId;
+
+        const adminMembership = await ConversationMember.findOne({
+            where: {
+                conversationId,
+                userId,
+                role: 'admin'
+            }
+        });
+
+        if (!adminMembership) {
             return res.status(403).json({ error: 'Only admin can update conversation' });
         }
 
         const conversation = await Conversation.findByPk(conversationId);
+
         if (!conversation) {
             return res.status(404).json({ error: 'Conversation not found' });
         }
 
-        await conversation.update({
-            name: name || conversation.name,
-            avatar: avatar || conversation.avatar,
-            description: description || conversation.description
-        });
+        const updates = {};
 
-        res.json({ message: 'Conversation updated successfully', conversation });
+        if (typeof name === 'string' && name.trim()) {
+            updates.name = name.trim();
+        }
+
+        if (typeof description === 'string') {
+            updates.description = description.trim();
+        }
+
+        if (Object.prototype.hasOwnProperty.call(req.body, 'avatar')) {
+            updates.avatar = avatar || null;
+        }
+
+        await conversation.update(updates);
+
+        const updatedConversation = await loadConversationForResponse(conversationId);
+
+        res.json({
+            message: 'Conversation updated successfully',
+            conversation: updatedConversation
+        });
     } catch (error) {
         console.error('Update conversation error:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 };
 
-
-// controllers/conversationController.js - ДОБАВЛЯЕМ
 exports.leaveConversation = async (req, res) => {
     try {
         const { conversationId } = req.params;
         const userId = req.userId;
 
-        console.log('🚪 User leaving conversation:', { conversationId, userId });
-
-        // Проверяем что пользователь участник беседы
-        const member = await ConversationMember.findOne({
+        const membership = await ConversationMember.findOne({
             where: { conversationId, userId }
         });
 
-        if (!member) {
+        if (!membership) {
             return res.status(404).json({ error: 'You are not a member of this conversation' });
         }
 
-        // Проверяем количество участников
         const memberCount = await ConversationMember.count({
             where: { conversationId }
         });
 
-        console.log(`👥 Current member count: ${memberCount}`);
-
-        // Если пользователь последний участник - удаляем всю беседу
         if (memberCount === 1) {
             await Conversation.destroy({ where: { id: conversationId } });
-            console.log('🗑️ Conversation deleted (last member left)');
-        } else {
-            // Если пользователь админ и есть другие участники - передаем админство
-            if (member.role === 'admin') {
-                const otherMember = await ConversationMember.findOne({
-                    where: {
-                        conversationId,
-                        userId: { [Op.ne]: userId }
-                    },
-                    order: [['createdAt', 'ASC']]
-                });
 
-                if (otherMember) {
-                    await otherMember.update({ role: 'admin' });
-                    console.log('👑 Admin role transferred to user:', otherMember.userId);
-                }
-            }
-
-            // Удаляем пользователя из беседы
-            await ConversationMember.destroy({
-                where: { conversationId, userId }
+            return res.json({
+                message: 'Successfully left the conversation',
+                deleted: true
             });
-            console.log('✅ User removed from conversation');
         }
+
+        const wasAdmin = membership.role === 'admin';
+
+        await membership.destroy();
+
+        if (wasAdmin) {
+            await ensureAdminExists(conversationId);
+        }
+
+        const conversation = await loadConversationForResponse(conversationId);
 
         res.json({
             message: 'Successfully left the conversation',
-            deleted: memberCount === 1
+            deleted: false,
+            conversation
         });
-
     } catch (error) {
-        console.error('❌ Leave conversation error:', error);
+        console.error('Leave conversation error:', error);
         res.status(500).json({ error: 'Failed to leave conversation: ' + error.message });
     }
 };

@@ -1,5 +1,5 @@
 // src/screens/UserProfileScreen.tsx - С REDUX
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import {
     View,
     Text,
@@ -16,9 +16,18 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useIsFocused } from '@react-navigation/native';
 import { darkTheme } from '../themes/dark';
 import { api } from '../services/api';
-import {fetchPosts, createPost, toggleLikeAction, fetchUserPosts, clearUserPosts} from '../store/slices/postsSlice';
+import {toggleLikeAction, fetchUserPosts, clearUserPosts} from '../store/slices/postsSlice';
 import PostCard from '../components/PostCard';
-import {API_BASE_URL, API_FILE_URL} from "../utils/constants.ts";
+import {API_FILE_URL} from "../utils/constants.ts";
+
+type UserRelation = {
+    isOwnProfile: boolean;
+    isFollowing: boolean;
+    isFriend: boolean;
+    friendshipStatus: 'self' | 'none' | 'pending' | 'accepted' | 'rejected';
+    friendshipDirection: 'incoming' | 'outgoing' | null;
+    friendshipId: string | null;
+};
 
 interface UserProfileScreenProps {
     route: {
@@ -47,12 +56,87 @@ export default function UserProfileScreen({ route, navigation }: UserProfileScre
     });
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [isFollowing, setIsFollowing] = useState(false);
+    const [relation, setRelation] = useState<UserRelation | null>(null);
+    const [friendActionLoading, setFriendActionLoading] = useState(false);
 
     const pollingRef = useRef<NodeJS.Timeout | null>(null);
     const isMountedRef = useRef(true);
 
     const isOwnProfile = userId === currentUser?.id;
+
+    const loadStats = useCallback(async () => {
+        const [followersResponse, followingResponse] = await Promise.all([
+            api.get(`/users/${userId}/followers`).catch(() => ({ data: { followers: [] } })),
+            api.get(`/users/${userId}/following`).catch(() => ({ data: { following: [] } }))
+        ]);
+
+        setStats(prev => ({
+            ...prev,
+            followers: followersResponse.data.followers?.length || 0,
+            following: followingResponse.data.following?.length || 0,
+        }));
+    }, [userId]);
+
+    const loadUserProfile = useCallback(async () => {
+        try {
+            const response = await api.get(`/users/${userId}/profile`);
+            const userData = response.data.user;
+            setUser(userData);
+            await loadStats();
+        } catch (error) {
+            console.error('Error loading user profile:', error);
+            Alert.alert('Ошибка', 'Не удалось загрузить профиль пользователя');
+        } finally {
+            setLoading(false);
+        }
+    }, [loadStats, userId]);
+
+    // 🔥 ИСПОЛЬЗУЕМ REDUX ACTION
+    const loadUserPosts = useCallback(() => {
+        dispatch(fetchUserPosts(userId) as any);
+    }, [dispatch, userId]);
+
+    const loadRelation = useCallback(async () => {
+        try {
+            if (!currentUser || isOwnProfile) {
+                setRelation({
+                    isOwnProfile: true,
+                    isFollowing: false,
+                    isFriend: false,
+                    friendshipStatus: 'self',
+                    friendshipDirection: null,
+                    friendshipId: null,
+                });
+                return;
+            }
+
+            const response = await api.get(`/users/${userId}/relation`);
+            setRelation(response.data.relation);
+        } catch (error) {
+            console.error('Error loading relation status:', error);
+        }
+    }, [currentUser, isOwnProfile, userId]);
+
+    const startPolling = useCallback(() => {
+        if (pollingRef.current) return;
+
+        console.log('🔄 Starting polling for user profile...');
+        pollingRef.current = setInterval(() => {
+            if (isMountedRef.current) {
+                loadUserPosts();
+                loadRelation();
+                loadStats();
+            }
+        }, 2000);
+    }, [loadRelation, loadStats, loadUserPosts]);
+
+    const stopPolling = useCallback(() => {
+        if (pollingRef.current) {
+            console.log('🛑 Stopping polling for user profile...');
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+        }
+    }, []);
 
     useEffect(() => {
         isMountedRef.current = true;
@@ -60,87 +144,30 @@ export default function UserProfileScreen({ route, navigation }: UserProfileScre
         if (isFocused && userId) {
             loadUserProfile();
             loadUserPosts();
-            checkFollowStatus();
+            loadRelation();
             startPolling();
         }
 
         return () => {
             isMountedRef.current = false;
             stopPolling();
-            // 🔥 ОЧИЩАЕМ ПОСТЫ ПРИ ВЫХОДЕ ИЗ ЭКРАНА
             dispatch(clearUserPosts(userId));
         };
-    }, [isFocused, userId]);
+    }, [isFocused, userId, loadUserProfile, loadUserPosts, loadRelation, startPolling, stopPolling, dispatch]);
 
-    const startPolling = () => {
-        if (pollingRef.current) return;
-
-        console.log('🔄 Starting polling for user profile...');
-        pollingRef.current = setInterval(() => {
-            if (isMountedRef.current) {
-                loadUserPosts();
-                checkFollowStatus();
-            }
-        }, 2000);
-    };
-
-    const stopPolling = () => {
-        if (pollingRef.current) {
-            console.log('🛑 Stopping polling for user profile...');
-            clearInterval(pollingRef.current);
-            pollingRef.current = null;
-        }
-    };
-
-    const loadUserProfile = async () => {
-        try {
-            const response = await api.get(`/users/${userId}/profile`);
-            const userData = response.data.user;
-            setUser(userData);
-
-            const [followersResponse, followingResponse] = await Promise.all([
-                api.get(`/users/${userId}/followers`).catch(() => ({ data: { followers: [] } })),
-                api.get(`/users/${userId}/following`).catch(() => ({ data: { following: [] } }))
-            ]);
-
-            setStats(prev => ({
-                ...prev,
-                followers: followersResponse.data.followers?.length || 0,
-                following: followingResponse.data.following?.length || 0,
-                posts: userPosts.length
-            }));
-        } catch (error) {
-            console.error('Error loading user profile:', error);
-            Alert.alert('Ошибка', 'Не удалось загрузить профиль пользователя');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // 🔥 ИСПОЛЬЗУЕМ REDUX ACTION
-    const loadUserPosts = () => {
-        dispatch(fetchUserPosts(userId) as any);
-    };
-
-    const checkFollowStatus = async () => {
-        if (!currentUser || isOwnProfile) return;
-
-        try {
-            const followersResponse = await api.get(`/users/${userId}/followers`);
-            const isUserFollowing = followersResponse.data.followers?.some(
-                (follower: any) => follower.id === currentUser.id
-            );
-            setIsFollowing(!!isUserFollowing);
-        } catch (error) {
-            console.error('Error checking follow status:', error);
-        }
-    };
+    useEffect(() => {
+        setStats(prev => ({
+            ...prev,
+            posts: userPosts.length,
+        }));
+    }, [userPosts.length]);
 
     const onRefresh = async () => {
         setRefreshing(true);
         await Promise.all([
             loadUserProfile(),
-            checkFollowStatus()
+            loadRelation(),
+            loadStats(),
         ]);
         loadUserPosts(); // 🔥 REDUX ACTION
         setRefreshing(false);
@@ -149,9 +176,8 @@ export default function UserProfileScreen({ route, navigation }: UserProfileScre
 
     const handleLike = async (postId: string) => {
         try {
-            // Добавь 'as any' вот сюда
             return await dispatch(toggleLikeAction(postId) as any).unwrap();
-        } catch (err) {
+        } catch {
             Alert.alert('Ошибка', 'Не удалось изменить лайк');
         }
     };
@@ -162,17 +188,67 @@ export default function UserProfileScreen({ route, navigation }: UserProfileScre
 
     const handleFollow = async () => {
         try {
-            if (isFollowing) {
+            if (relation?.isFollowing) {
                 await api.delete(`/users/${userId}/unfollow`);
-                setIsFollowing(false);
-                setStats(prev => ({ ...prev, followers: Math.max(0, prev.followers - 1) }));
             } else {
                 await api.post(`/users/${userId}/follow`);
-                setIsFollowing(true);
-                setStats(prev => ({ ...prev, followers: prev.followers + 1 }));
             }
+            await Promise.all([loadRelation(), loadStats()]);
         } catch (error: any) {
             console.error('Follow error:', error);
+        }
+    };
+
+    const handleFriendAction = async () => {
+        if (isOwnProfile || friendActionLoading) {
+            return;
+        }
+
+        setFriendActionLoading(true);
+
+        try {
+            if (relation?.friendshipStatus === 'accepted' && relation.friendshipId) {
+                await api.delete(`/friends/${relation.friendshipId}`);
+            } else if (
+                relation?.friendshipStatus === 'pending' &&
+                relation.friendshipDirection === 'incoming' &&
+                relation.friendshipId
+            ) {
+                await api.put(`/friends/${relation.friendshipId}/accept`);
+            } else if (
+                relation?.friendshipStatus === 'none' ||
+                relation?.friendshipStatus === 'rejected' ||
+                !relation
+            ) {
+                await api.post(`/friends/${userId}/request`);
+            }
+
+            await Promise.all([loadRelation(), loadStats()]);
+        } catch (error: any) {
+            console.error('Friend action error:', error);
+            const errorMessage = error.response?.data?.error || 'Не удалось выполнить действие с друзьями';
+            Alert.alert('Ошибка', errorMessage);
+        } finally {
+            setFriendActionLoading(false);
+        }
+    };
+
+    const handleRejectFriendRequest = async () => {
+        if (!relation?.friendshipId || friendActionLoading) {
+            return;
+        }
+
+        setFriendActionLoading(true);
+
+        try {
+            await api.put(`/friends/${relation.friendshipId}/reject`);
+            await Promise.all([loadRelation(), loadStats()]);
+        } catch (error: any) {
+            console.error('Reject friend request error:', error);
+            const errorMessage = error.response?.data?.error || 'Не удалось отклонить заявку в друзья';
+            Alert.alert('Ошибка', errorMessage);
+        } finally {
+            setFriendActionLoading(false);
         }
     };
 
@@ -190,7 +266,8 @@ export default function UserProfileScreen({ route, navigation }: UserProfileScre
     const navigateToFollowList = (type: 'followers' | 'following') => {
         navigation.navigate('FollowList', {
             userId: userId,
-            type
+            type,
+            onRelationChanged: loadUserProfile,
         });
     };
 
@@ -202,6 +279,21 @@ export default function UserProfileScreen({ route, navigation }: UserProfileScre
         />
     );
 
+    const emptyListContent = styles.emptyListContent;
+    const relationStatus = relation?.friendshipStatus || 'none';
+    const relationDirection = relation?.friendshipDirection || null;
+    const isFollowing = Boolean(relation?.isFollowing);
+    const isFriend = relationStatus === 'accepted';
+    const hasOutgoingRequest = relationStatus === 'pending' && relationDirection === 'outgoing';
+    const hasIncomingRequest = relationStatus === 'pending' && relationDirection === 'incoming';
+    const friendButtonText = isFriend
+        ? 'Удалить из друзей'
+        : hasIncomingRequest
+            ? 'Принять в друзья'
+            : hasOutgoingRequest
+                ? 'Заявка отправлена'
+                : 'Добавить в друзья';
+
     if (loading || !user) {
         return (
             <SafeAreaView style={styles.centerContainer}>
@@ -210,8 +302,6 @@ export default function UserProfileScreen({ route, navigation }: UserProfileScre
             </SafeAreaView>
         );
     }
-
-    console.log('DEBUG POSTS:', userPosts.map(p => ({id: p.id, liked: p.isLiked})));
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
@@ -258,20 +348,59 @@ export default function UserProfileScreen({ route, navigation }: UserProfileScre
                             )}
 
                             {!isOwnProfile && (
-                                <TouchableOpacity
-                                    style={[
-                                        styles.followButton,
-                                        isFollowing && styles.unfollowButton
-                                    ]}
-                                    onPress={handleFollow}
-                                >
-                                    <Text style={[
-                                        styles.followButtonText,
-                                        isFollowing && styles.unfollowButtonText
-                                    ]}>
-                                        {isFollowing ? 'Отписаться' : 'Подписаться'}
-                                    </Text>
-                                </TouchableOpacity>
+                                <View style={styles.profileActions}>
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.followButton,
+                                            isFollowing && styles.unfollowButton
+                                        ]}
+                                        onPress={handleFollow}
+                                    >
+                                        <Text style={[
+                                            styles.followButtonText,
+                                            isFollowing && styles.unfollowButtonText
+                                        ]}>
+                                            {isFollowing ? 'Отписаться' : 'Подписаться'}
+                                        </Text>
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.friendButton,
+                                            (isFriend || hasOutgoingRequest) && styles.friendButtonMuted
+                                        ]}
+                                        onPress={handleFriendAction}
+                                        disabled={friendActionLoading || hasOutgoingRequest}
+                                    >
+                                        {friendActionLoading ? (
+                                            <ActivityIndicator
+                                                size="small"
+                                                color={(isFriend || hasOutgoingRequest) ? darkTheme.colors.text : '#fff'}
+                                            />
+                                        ) : (
+                                            <Text
+                                                style={[
+                                                    styles.friendButtonText,
+                                                    (isFriend || hasOutgoingRequest) && styles.friendButtonTextMuted
+                                                ]}
+                                            >
+                                                {friendButtonText}
+                                            </Text>
+                                        )}
+                                    </TouchableOpacity>
+
+                                    {hasIncomingRequest && (
+                                        <TouchableOpacity
+                                            style={styles.rejectFriendButton}
+                                            onPress={handleRejectFriendRequest}
+                                            disabled={friendActionLoading}
+                                        >
+                                            <Text style={styles.rejectFriendButtonText}>
+                                                Отклонить заявку
+                                            </Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
                             )}
                         </View>
 
@@ -307,16 +436,16 @@ export default function UserProfileScreen({ route, navigation }: UserProfileScre
                     </View>
                 }
                 ListEmptyComponent={
-                    !postsLoading && (
+                    !postsLoading ? (
                         <View style={styles.emptyPostsContainer}>
                             <Text style={styles.emptyPostsText}>У пользователя пока нет постов</Text>
                             <Text style={styles.emptyPostsSubtext}>
                                 Когда пользователь создаст пост, он появится здесь
                             </Text>
                         </View>
-                    )
+                    ) : null
                 }
-                contentContainerStyle={userPosts.length === 0 ? { flexGrow: 1 } : null}
+                contentContainerStyle={userPosts.length === 0 ? emptyListContent : undefined}
             />
         </SafeAreaView>
     );
@@ -412,6 +541,11 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         marginTop: 10,
     },
+    profileActions: {
+        width: '100%',
+        marginTop: 10,
+        gap: 10,
+    },
     unfollowButton: {
         backgroundColor: 'transparent',
         borderWidth: 1,
@@ -424,6 +558,42 @@ const styles = StyleSheet.create({
     },
     unfollowButtonText: {
         color: darkTheme.colors.text,
+    },
+    friendButton: {
+        backgroundColor: darkTheme.colors.primary,
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 42,
+    },
+    friendButtonMuted: {
+        backgroundColor: 'transparent',
+        borderWidth: 1,
+        borderColor: darkTheme.colors.border,
+    },
+    friendButtonText: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    friendButtonTextMuted: {
+        color: darkTheme.colors.text,
+    },
+    rejectFriendButton: {
+        backgroundColor: '#ef4444',
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 42,
+    },
+    rejectFriendButtonText: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: '600',
     },
     stats: {
         flexDirection: 'row',
@@ -474,5 +644,8 @@ const styles = StyleSheet.create({
         color: darkTheme.colors.textSecondary,
         fontSize: 14,
         textAlign: 'center',
+    },
+    emptyListContent: {
+        flexGrow: 1,
     },
 });

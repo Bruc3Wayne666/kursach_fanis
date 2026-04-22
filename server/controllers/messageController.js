@@ -9,7 +9,7 @@ exports.sendMessage = async (req, res) => {
 
         console.log('📤 Sending message:', { receiverId, content, messageType, conversationId, senderId });
 
-        if (!content) {
+        if (!content || (typeof content === 'string' && !content.trim())) {
             return res.status(400).json({ error: 'Content is required' });
         }
 

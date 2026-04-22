@@ -1,5 +1,5 @@
 // src/screens/MessagesScreen.tsx - ПОЛНАЯ ВЕРСИЯ
-import React, {useState, useEffect, useRef, useMemo} from 'react';
+import React, {useState, useEffect, useRef, useMemo, useCallback} from 'react';
 import {
     View,
     Text,
@@ -7,7 +7,6 @@ import {
     TouchableOpacity,
     StyleSheet,
     ActivityIndicator,
-    Alert,
     RefreshControl,
     Image
 } from 'react-native';
@@ -18,13 +17,12 @@ import {darkTheme} from '../themes/dark';
 import {api} from '../services/api';
 import {getChats} from '../store/slices/messagesSlice';
 import UserSearchModal from '../components/UserSearchModal';
-import {API_BASE_URL, API_FILE_URL} from "../utils/constants.ts";
+import {API_FILE_URL} from "../utils/constants.ts";
 
 export default function MessagesScreen() {
     const navigation = useNavigation();
     const dispatch = useDispatch();
     const isFocused = useIsFocused();
-    const currentUser = useSelector((state: any) => state.auth.user);
     const {chats, loading} = useSelector((state: any) => state.messages);
 
     const [refreshing, setRefreshing] = useState(false);
@@ -45,16 +43,7 @@ export default function MessagesScreen() {
         return `${API_FILE_URL}${avatarPath}`;
     };
 
-    useEffect(() => {
-        const unsubscribe = navigation.addListener('focus', () => {
-            console.log('🔄 MessagesScreen focused, refreshing chats...');
-            loadChatsAndFriends();
-        });
-
-        return unsubscribe;
-    }, [navigation]);
-
-    const loadChatsAndFriends = async () => {
+    const loadChatsAndFriends = useCallback(async () => {
         if (!isMountedRef.current) return;
 
         try {
@@ -79,9 +68,18 @@ export default function MessagesScreen() {
                 setRefreshing(false);
             }
         }
-    };
+    }, [chats, dispatch]);
 
-    const startPolling = () => {
+    useEffect(() => {
+        const unsubscribe = navigation.addListener('focus', () => {
+            console.log('🔄 MessagesScreen focused, refreshing chats...');
+            loadChatsAndFriends();
+        });
+
+        return unsubscribe;
+    }, [loadChatsAndFriends, navigation]);
+
+    const startPolling = useCallback(() => {
         if (pollingRef.current) return;
 
         console.log('🔄 Starting polling for chats...');
@@ -91,15 +89,15 @@ export default function MessagesScreen() {
                 loadChatsAndFriends();
             }
         }, 8000);
-    };
+    }, [isFocused, loadChatsAndFriends, searchModalVisible]);
 
-    const stopPolling = () => {
+    const stopPolling = useCallback(() => {
         if (pollingRef.current) {
             console.log('🛑 Stopping polling for chats...');
             clearInterval(pollingRef.current);
             pollingRef.current = null;
         }
-    };
+    }, []);
 
     useEffect(() => {
         isMountedRef.current = true;
@@ -114,7 +112,7 @@ export default function MessagesScreen() {
             isMountedRef.current = false;
             stopPolling();
         };
-    }, [isFocused, searchModalVisible]);
+    }, [isFocused, searchModalVisible, startPolling, stopPolling]);
 
     const onRefresh = () => {
         setRefreshing(true);
@@ -177,6 +175,12 @@ export default function MessagesScreen() {
                 : '📷 Фото';
         }
 
+        if (chat.lastMessage.messageType === 'audio') {
+            return chat.type === 'group' && chat.lastMessage.Sender?.name
+                ? `${chat.lastMessage.Sender.name}: 🎤 Голосовое`
+                : '🎤 Голосовое';
+        }
+
         const content = chat.lastMessage.content || '';
         const preview = content.length > 40
             ? content.substring(0, 40) + '...'
@@ -205,7 +209,7 @@ export default function MessagesScreen() {
         }
     };
 
-    const getFriendsAsChats = () => {
+    const getFriendsAsChats = useCallback(() => {
         return friends.map(friend => ({
             type: 'personal',
             partner: friend,
@@ -214,7 +218,7 @@ export default function MessagesScreen() {
             updatedAt: friend.createdAt || new Date(),
             isFriendChat: true
         }));
-    };
+    }, [friends]);
 
     const sortedChats = useMemo(() => {
         const allChats = [
@@ -245,7 +249,9 @@ export default function MessagesScreen() {
             const dateB = b.lastMessage ? new Date(b.updatedAt).getTime() : 0;
             return dateB - dateA;
         });
-    }, [chats, friends]);
+    }, [chats, friends, getFriendsAsChats]);
+
+    const emptyContentStyle = styles.emptyListContent;
 
     const renderChatItem = ({item}: { item: any }) => (
         <TouchableOpacity
@@ -377,24 +383,6 @@ export default function MessagesScreen() {
                             colors={[darkTheme.colors.primary]}
                         />
                     }
-                    ListHeaderComponent={
-                        sortedChats.length > 0 && (
-                            <View style={styles.buttonsContainer}>
-                                <TouchableOpacity
-                                    style={styles.newChatButton}
-                                    onPress={startNewChat}
-                                >
-                                    <Text style={styles.newChatButtonText}>💬 Новый диалог</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={styles.newConversationButton}
-                                    onPress={startNewConversation}
-                                >
-                                    <Text style={styles.newConversationButtonText}>👥 Создать беседу</Text>
-                                </TouchableOpacity>
-                            </View>
-                        )
-                    }
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
                             <Text style={styles.emptyText}>Нет сообщений</Text>
@@ -417,7 +405,7 @@ export default function MessagesScreen() {
                             </View>
                         </View>
                     }
-                    contentContainerStyle={sortedChats.length === 0 ? {flex: 1} : null}
+                    contentContainerStyle={sortedChats.length === 0 ? emptyContentStyle : undefined}
                 />
             </SafeAreaView>
 
@@ -477,32 +465,6 @@ const styles = StyleSheet.create({
     searchButtonText: {
         fontSize: 18,
         color: darkTheme.colors.text,
-    },
-    buttonsContainer: {
-        gap: 10,
-        padding: 15,
-    },
-    newChatButton: {
-        backgroundColor: darkTheme.colors.primary,
-        padding: 15,
-        borderRadius: 12,
-        alignItems: 'center',
-    },
-    newChatButtonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    newConversationButton: {
-        backgroundColor: '#8b5cf6',
-        padding: 15,
-        borderRadius: 12,
-        alignItems: 'center',
-    },
-    newConversationButtonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '600',
     },
     centerContainer: {
         flex: 1,
@@ -638,5 +600,8 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 14,
         fontWeight: '600',
+    },
+    emptyListContent: {
+        flex: 1,
     },
 });

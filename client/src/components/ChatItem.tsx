@@ -4,10 +4,11 @@ import {
     View,
     Text,
     TouchableOpacity,
-    StyleSheet,
-    Image
+    StyleSheet
 } from 'react-native';
 import { darkTheme } from '../themes/dark';
+import Avatar from './Avatar';
+import { formatTime } from '../utils/format';
 
 interface ChatItemProps {
     chat: {
@@ -22,7 +23,7 @@ interface ChatItemProps {
             content: string;
             createdAt: string;
             senderId: string;
-            messageType: 'text' | 'image';
+            messageType: 'text' | 'image' | 'audio';
         };
         unreadCount: number;
         updatedAt: string;
@@ -40,6 +41,10 @@ export default function ChatItem({ chat, onPress }: ChatItemProps) {
             return '📷 Фото';
         }
 
+        if (lastMessage.messageType === 'audio') {
+            return '🎤 Голосовое сообщение';
+        }
+
         return lastMessage.content.length > 40
             ? lastMessage.content.substring(0, 40) + '...'
             : lastMessage.content;
@@ -48,15 +53,13 @@ export default function ChatItem({ chat, onPress }: ChatItemProps) {
     return (
         <TouchableOpacity style={styles.container} onPress={onPress}>
             <View style={styles.avatarContainer}>
-                <View style={styles.avatar}>
-                    {partner.avatar ? (
-                        <Image source={{ uri: partner.avatar }} style={styles.avatarImage} />
-                    ) : (
-                        <Text style={styles.avatarText}>
-                            {partner.name.charAt(0).toUpperCase()}
-                        </Text>
-                    )}
-                </View>
+                <Avatar
+                    avatar={partner.avatar}
+                    name={partner.name}
+                    username={partner.username}
+                    size={50}
+                    style={styles.avatar}
+                />
                 {partner.isOnline && <View style={styles.onlineDot} />}
             </View>
 
@@ -64,12 +67,7 @@ export default function ChatItem({ chat, onPress }: ChatItemProps) {
                 <View style={styles.header}>
                     <Text style={styles.name}>{partner.name}</Text>
                     {lastMessage && (
-                        <Text style={styles.time}>
-                            {new Date(lastMessage.createdAt).toLocaleTimeString('ru-RU', {
-                                hour: '2-digit',
-                                minute: '2-digit'
-                            })}
-                        </Text>
+                        <Text style={styles.time}>{formatTime(lastMessage.createdAt)}</Text>
                     )}
                 </View>
 
@@ -109,22 +107,7 @@ const styles = StyleSheet.create({
         marginRight: 12,
     },
     avatar: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
         backgroundColor: darkTheme.colors.primary,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    avatarImage: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-    },
-    avatarText: {
-        color: '#fff',
-        fontSize: 18,
-        fontWeight: 'bold',
     },
     onlineDot: {
         position: 'absolute',

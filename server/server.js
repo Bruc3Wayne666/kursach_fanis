@@ -42,8 +42,20 @@ const storage = multer.diskStorage({
 
 const upload = multer({
     storage: storage,
-    limits: { fileSize: 10 * 1024 * 1024 } // 10MB
+    limits: { fileSize: 20 * 1024 * 1024 } // 20MB
 });
+
+const ensureMessageTypeEnumValues = async () => {
+    try {
+        await sequelize.query(
+            `ALTER TYPE "enum_Messages_messageType" ADD VALUE IF NOT EXISTS 'audio';`
+        );
+    } catch (error) {
+        if (!String(error.message).includes('already exists')) {
+            throw error;
+        }
+    }
+};
 
 // Настройка CORS
 app.use((req, res, next) => {
@@ -76,20 +88,24 @@ app.use('/api/friends', friendsRoutes); // 🔥 НОВЫЙ
 app.use('/api/ai', aiRoutes);
 
 // Роут для загрузки файлов
-app.post('/api/upload', upload.single('image'), (req, res) => {
+app.post('/api/upload', upload.fields([
+    { name: 'image', maxCount: 1 },
+    { name: 'file', maxCount: 1 }
+]), (req, res) => {
     try {
-        console.log('📤 Загрузка файла:', req.file);
+        const uploadedFile = req.files?.image?.[0] || req.files?.file?.[0];
+        console.log('📤 Загрузка файла:', uploadedFile);
 
-        if (!req.file) {
+        if (!uploadedFile) {
             return res.status(400).json({ error: 'No file uploaded' });
         }
 
-        const fileUrl = `/uploads/${req.file.filename}`;
+        const fileUrl = `/uploads/${uploadedFile.filename}`;
         console.log('✅ Файл загружен:', fileUrl);
 
         res.json({
             url: fileUrl,
-            filename: req.file.filename
+            filename: uploadedFile.filename
         });
     } catch (error) {
         console.error('Upload error:', error);
@@ -119,7 +135,8 @@ Object.keys(networkInterfaces).forEach(interfaceName => {
 const PORT = process.env.PORT || 5000;
 
 sequelize.sync({ force: false })
-    .then(() => {
+    .then(async () => {
+        await ensureMessageTypeEnumValues();
         console.log('✅ Database connected and synced');
         server.listen(PORT, '0.0.0.0', () => {
             console.log(`🚀 Server running on all interfaces (0.0.0.0) port ${PORT}`);

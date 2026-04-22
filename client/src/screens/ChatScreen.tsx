@@ -1,5 +1,5 @@
 // src/screens/ChatScreen.tsx - ПОЛНАЯ ВЕРСИЯ
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     View,
     Text,
@@ -10,6 +10,7 @@ import {
     Alert,
     KeyboardAvoidingView,
     Platform,
+    PermissionsAndroid,
     ActivityIndicator,
     Image,
     ScrollView
@@ -20,9 +21,19 @@ import { useRoute, useNavigation, useIsFocused } from '@react-navigation/native'
 import { launchImageLibrary } from 'react-native-image-picker';
 import { darkTheme } from '../themes/dark';
 import { api } from '../services/api';
-import { addMessage } from '../store/slices/messagesSlice';
+import { addMessage, getChats } from '../store/slices/messagesSlice';
 import MessageBubble from '../components/MessageBubble';
-import {API_BASE_URL, API_FILE_URL} from "../utils/constants.ts";
+import {API_FILE_URL} from "../utils/constants.ts";
+import { formatAudioDuration } from '../utils/audio';
+
+let createSoundModule: null | (() => any) = null;
+
+try {
+    const nitroSound = require('react-native-nitro-sound');
+    createSoundModule = nitroSound.createSound;
+} catch (error) {
+    console.warn('Audio module is unavailable until the app is rebuilt:', error);
+}
 
 const AI_REWRITE_STYLES = [
     { key: 'official', label: 'AI Официально' },
@@ -42,13 +53,25 @@ export default function ChatScreen() {
     const [loading, setLoading] = useState(false);
     const [sending, setSending] = useState(false);
     const [uploadingImage, setUploadingImage] = useState(false);
+    const [recording, setRecording] = useState(false);
+    const [recordingLoading, setRecordingLoading] = useState(false);
+    const [recordingDurationMs, setRecordingDurationMs] = useState(0);
     const [aiLoadingStyle, setAiLoadingStyle] = useState<string | null>(null);
     const [aiError, setAiError] = useState('');
+    const [groupConversation, setGroupConversation] = useState<any>(null);
     const flatListRef = useRef<FlatList>(null);
     const pollingRef = useRef<NodeJS.Timeout | null>(null);
     const isMountedRef = useRef(true);
+    const accessLostHandledRef = useRef(false);
+    const soundRef = useRef<any>(createSoundModule ? createSoundModule() : null);
 
     const params = route.params as any;
+    const hasPartner = Boolean(params?.partner);
+    const partner = params?.partner;
+    const chatType = params?.chatType || 'personal';
+    const chatId = partner?.id;
+    const chatMessages = chatId ? (messages[chatId] || []) : [];
+    const activePartner = chatType === 'group' ? (groupConversation || partner) : partner;
 
     // Функция для получения URL аватара
     const getAvatarUrl = (avatarPath: string | null) => {
@@ -62,28 +85,79 @@ export default function ChatScreen() {
         return `${API_FILE_URL}${avatarPath}`;
     };
 
-    if (!params?.partner) {
-        console.error('❌ ChatScreen: Missing partner parameter');
-        return (
-            <SafeAreaView style={styles.container}>
-                <Text style={{ color: '#fff', textAlign: 'center', marginTop: 20 }}>
-                    Ошибка: неверные параметры чата
-                </Text>
-            </SafeAreaView>
-        );
-    }
+    const requestAudioPermission = useCallback(async () => {
+        if (Platform.OS !== 'android') {
+            return true;
+        }
 
-    const { partner, chatType = 'personal' } = params;
-    const chatId = partner.id;
-    const chatMessages = messages[chatId] || [];
+        try {
+            const granted = await PermissionsAndroid.request(
+                PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+                {
+                    title: 'Доступ к микрофону',
+                    message: 'Нужен доступ к микрофону для записи голосовых сообщений.',
+                    buttonNeutral: 'Позже',
+                    buttonNegative: 'Отмена',
+                    buttonPositive: 'Разрешить',
+                }
+            );
+
+            return granted === PermissionsAndroid.RESULTS.GRANTED;
+        } catch (error) {
+            console.error('Record permission error:', error);
+            return false;
+        }
+    }, []);
 
     console.log('💬 ChatScreen params:', { partner, chatType, chatId });
 
+    const stopPolling = useCallback(() => {
+        if (pollingRef.current) {
+            console.log('🛑 Stopping polling for messages...');
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+        }
+    }, []);
+
+    const handleConversationAccessLost = useCallback(() => {
+        if (chatType !== 'group' || accessLostHandledRef.current) {
+            return;
+        }
+
+        accessLostHandledRef.current = true;
+        stopPolling();
+        dispatch(getChats() as any);
+
+        Alert.alert('Беседа обновлена', 'Вы больше не участник этой беседы', [
+            {
+                text: 'OK',
+                onPress: () => navigation.goBack()
+            }
+        ]);
+    }, [chatType, dispatch, navigation, stopPolling]);
+
+    const loadConversationInfo = useCallback(async () => {
+        if (chatType !== 'group' || !isMountedRef.current) {
+            return;
+        }
+
+        try {
+            const response = await api.get(`/conversations/${chatId}`);
+            setGroupConversation(response.data.conversation);
+        } catch (error: any) {
+            console.error('Conversation info sync error:', error);
+
+            if (error.response?.status === 403 || error.response?.status === 404) {
+                handleConversationAccessLost();
+            }
+        }
+    }, [chatId, chatType, handleConversationAccessLost]);
+
     const getChatTitle = () => {
         if (chatType === 'personal') {
-            return partner?.name || 'Пользователь';
+            return activePartner?.name || 'Пользователь';
         } else {
-            return partner?.name || 'Беседа';
+            return activePartner?.name || 'Беседа';
         }
     };
 
@@ -91,17 +165,17 @@ export default function ChatScreen() {
         if (chatType === 'personal') {
             return 'Личный чат';
         } else {
-            const memberCount = partner?.Members?.length || 0;
+            const memberCount = activePartner?.Members?.length || 0;
             return `Групповой чат • ${memberCount} участников`;
         }
     };
 
     const getChatAvatar = () => {
-        return getAvatarUrl(partner?.avatar);
+        return getAvatarUrl(activePartner?.avatar);
     };
 
     // Загрузка сообщений
-    const loadMessages = async () => {
+    const loadMessages = useCallback(async () => {
         if (!isMountedRef.current) return;
 
         try {
@@ -137,16 +211,23 @@ export default function ChatScreen() {
 
         } catch (error: any) {
             console.error('❌ Error loading messages:', error);
+
+            if ((error.response?.status === 403 || error.response?.status === 404) && chatType === 'group') {
+                handleConversationAccessLost();
+            }
         }
-    };
+    }, [chatId, chatType, currentUser.id, dispatch, handleConversationAccessLost]);
 
     // Polling для новых сообщений
-    const startPolling = () => {
+    const startPolling = useCallback(() => {
         if (pollingRef.current) return;
 
         console.log('🔄 Starting polling for messages...');
         setLoading(true);
-        loadMessages().finally(() => {
+        Promise.all([
+            loadMessages(),
+            loadConversationInfo(),
+        ]).finally(() => {
             if (isMountedRef.current) {
                 setLoading(false);
             }
@@ -155,20 +236,20 @@ export default function ChatScreen() {
         pollingRef.current = setInterval(() => {
             if (isMountedRef.current) {
                 loadMessages();
+                loadConversationInfo();
             }
         }, 3000);
-    };
-
-    const stopPolling = () => {
-        if (pollingRef.current) {
-            console.log('🛑 Stopping polling for messages...');
-            clearInterval(pollingRef.current);
-            pollingRef.current = null;
-        }
-    };
+    }, [loadConversationInfo, loadMessages]);
 
     useEffect(() => {
+        const sound = soundRef.current;
+
         isMountedRef.current = true;
+        accessLostHandledRef.current = false;
+
+        if (chatType === 'group') {
+            setGroupConversation(partner);
+        }
 
         if (isFocused) {
             startPolling();
@@ -179,19 +260,31 @@ export default function ChatScreen() {
         return () => {
             isMountedRef.current = false;
             stopPolling();
+            if (sound) {
+                sound.removeRecordBackListener?.();
+                sound.removePlayBackListener?.();
+                sound.removePlaybackEndListener?.();
+                sound.stopRecorder?.().catch(() => undefined);
+                sound.stopPlayer?.().catch(() => undefined);
+            }
         };
-    }, [isFocused, chatId]);
+    }, [chatId, chatType, isFocused, partner, startPolling, stopPolling]);
 
     // Функция для загрузки изображения на сервер
-    const uploadImage = async (imageUri: string): Promise<string | null> => {
+    const uploadFile = async (
+        fileUri: string,
+        fieldName: 'image' | 'file',
+        fileName: string,
+        fileType: string
+    ): Promise<string | null> => {
         try {
-            console.log('📤 Uploading image:', imageUri);
+            console.log('📤 Uploading file:', { fileUri, fieldName, fileName, fileType });
 
             const formData = new FormData();
-            formData.append('image', {
-                uri: imageUri,
-                type: 'image/jpeg',
-                name: 'message-image.jpg'
+            formData.append(fieldName, {
+                uri: fileUri,
+                type: fileType,
+                name: fileName
             } as any);
 
             const response = await api.post('/upload', formData, {
@@ -203,13 +296,13 @@ export default function ChatScreen() {
             console.log('✅ Image uploaded:', response.data.url);
             return response.data.url;
         } catch (error) {
-            console.error('❌ Error uploading image:', error);
-            Alert.alert('Ошибка', 'Не удалось загрузить изображение');
+            console.error('❌ Error uploading file:', error);
+            Alert.alert('Ошибка', 'Не удалось загрузить файл');
             return null;
         }
     };
 
-    const sendMessage = async (content: string, messageType: 'text' | 'image' = 'text') => {
+    const sendMessage = async (content: string, messageType: 'text' | 'image' | 'audio' = 'text') => {
         if ((!content.trim() && messageType === 'text') || sending) return;
 
         console.log('📤 Sending message:', { content, messageType, chatType });
@@ -220,7 +313,7 @@ export default function ChatScreen() {
 
             // Если это изображение - загружаем на сервер
             if (messageType === 'image' && content.startsWith('file://')) {
-                const uploadedUrl = await uploadImage(content);
+                const uploadedUrl = await uploadFile(content, 'image', 'message-image.jpg', 'image/jpeg');
                 if (!uploadedUrl) {
                     setSending(false);
                     return;
@@ -271,6 +364,81 @@ export default function ChatScreen() {
             Alert.alert('Ошибка', errorMessage);
         } finally {
             setSending(false);
+        }
+    };
+
+    const startVoiceRecording = async () => {
+        if (recording || recordingLoading || sending) {
+            return;
+        }
+
+        if (!soundRef.current) {
+            Alert.alert('Недоступно', 'Голосовые заработают после полной пересборки приложения.');
+            return;
+        }
+
+        const hasPermission = await requestAudioPermission();
+
+        if (!hasPermission) {
+            Alert.alert('Ошибка', 'Без доступа к микрофону запись голосового недоступна');
+            return;
+        }
+
+        try {
+            setRecordingLoading(true);
+            setRecordingDurationMs(0);
+            soundRef.current.removeRecordBackListener?.();
+            soundRef.current.addRecordBackListener?.((recordMeta: any) => {
+                setRecordingDurationMs(recordMeta.currentPosition || 0);
+            });
+            await soundRef.current.startRecorder();
+            setRecording(true);
+        } catch (error) {
+            console.error('Start recording error:', error);
+            Alert.alert('Ошибка', 'Не удалось начать запись');
+        } finally {
+            setRecordingLoading(false);
+        }
+    };
+
+    const stopVoiceRecording = async (shouldSend: boolean) => {
+        if (!recording && !recordingLoading) {
+            return;
+        }
+
+        try {
+            setRecordingLoading(true);
+            const recordedPath = await soundRef.current.stopRecorder();
+            soundRef.current.removeRecordBackListener?.();
+            setRecording(false);
+
+            if (!shouldSend || !recordedPath) {
+                setRecordingDurationMs(0);
+                return;
+            }
+
+            const uploadedUrl = await uploadFile(
+                recordedPath,
+                'file',
+                'voice-message.m4a',
+                Platform.OS === 'ios' ? 'audio/m4a' : 'audio/mp4'
+            );
+
+            if (!uploadedUrl) {
+                return;
+            }
+
+            await sendMessage(JSON.stringify({
+                url: uploadedUrl,
+                durationMs: recordingDurationMs,
+            }), 'audio');
+            setRecordingDurationMs(0);
+        } catch (error) {
+            console.error('Stop recording error:', error);
+            Alert.alert('Ошибка', 'Не удалось завершить запись');
+        } finally {
+            setRecording(false);
+            setRecordingLoading(false);
         }
     };
 
@@ -335,10 +503,19 @@ export default function ChatScreen() {
         if (chatType === 'group') {
             navigation.navigate('ConversationInfo', {
                 conversationId: chatId,
-                conversation: partner
+                conversation: activePartner
             });
         }
     };
+
+    if (!hasPartner) {
+        console.error('❌ ChatScreen: Missing partner parameter');
+        return (
+            <SafeAreaView style={styles.container}>
+                <Text style={styles.errorStateText}>Ошибка: неверные параметры чата</Text>
+            </SafeAreaView>
+        );
+    }
 
     return (
         <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -439,49 +616,94 @@ export default function ChatScreen() {
                 )}
 
                 <View style={styles.inputContainer}>
-                    <TouchableOpacity
-                        style={styles.attachButton}
-                        onPress={sendImage}
-                        disabled={uploadingImage}
-                    >
-                        {uploadingImage ? (
-                            <ActivityIndicator size="small" color={darkTheme.colors.primary} />
-                        ) : (
-                            <Text style={styles.attachButtonText}>📷</Text>
-                        )}
-                    </TouchableOpacity>
+                    {recording ? (
+                        <View style={styles.recordingBar}>
+                            <View style={styles.recordingInfo}>
+                                <Text style={styles.recordingDot}>●</Text>
+                                <Text style={styles.recordingText}>
+                                    Запись {formatAudioDuration(recordingDurationMs)}
+                                </Text>
+                            </View>
+                            <View style={styles.recordingActions}>
+                                <TouchableOpacity
+                                    style={styles.recordingCancelButton}
+                                    onPress={() => stopVoiceRecording(false)}
+                                    disabled={recordingLoading}
+                                >
+                                    <Text style={styles.recordingCancelText}>Отмена</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.recordingSendButton}
+                                    onPress={() => stopVoiceRecording(true)}
+                                    disabled={recordingLoading}
+                                >
+                                    {recordingLoading ? (
+                                        <ActivityIndicator size="small" color="#fff" />
+                                    ) : (
+                                        <Text style={styles.recordingSendText}>Отправить</Text>
+                                    )}
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    ) : (
+                        <>
+                            <TouchableOpacity
+                                style={styles.attachButton}
+                                onPress={sendImage}
+                                disabled={uploadingImage || recordingLoading}
+                            >
+                                {uploadingImage ? (
+                                    <ActivityIndicator size="small" color={darkTheme.colors.primary} />
+                                ) : (
+                                    <Text style={styles.attachButtonText}>📷</Text>
+                                )}
+                            </TouchableOpacity>
 
-                    <TextInput
-                        style={styles.messageInput}
-                        placeholder={
-                            chatType === 'personal'
-                                ? "Введите сообщение..."
-                                : "Введите сообщение в беседу..."
-                        }
-                        placeholderTextColor={darkTheme.colors.textSecondary}
-                        value={newMessage}
-                        onChangeText={(value) => {
-                            setNewMessage(value);
-                            if (aiError) {
-                                setAiError('');
-                            }
-                        }}
-                        multiline
-                        maxLength={1000}
-                        onSubmitEditing={() => sendMessage(newMessage)}
-                    />
+                            <TouchableOpacity
+                                style={styles.attachButton}
+                                onPress={startVoiceRecording}
+                                disabled={recordingLoading || sending}
+                            >
+                                {recordingLoading ? (
+                                    <ActivityIndicator size="small" color={darkTheme.colors.primary} />
+                                ) : (
+                                    <Text style={styles.attachButtonText}>🎤</Text>
+                                )}
+                            </TouchableOpacity>
 
-                    <TouchableOpacity
-                        style={[styles.sendButton, (!newMessage.trim() || sending) && styles.sendButtonDisabled]}
-                        onPress={() => sendMessage(newMessage)}
-                        disabled={!newMessage.trim() || sending}
-                    >
-                        {sending ? (
-                            <ActivityIndicator size="small" color="#fff" />
-                        ) : (
-                            <Text style={styles.sendButtonText}>➤</Text>
-                        )}
-                    </TouchableOpacity>
+                            <TextInput
+                                style={styles.messageInput}
+                                placeholder={
+                                    chatType === 'personal'
+                                        ? "Введите сообщение..."
+                                        : "Введите сообщение в беседу..."
+                                }
+                                placeholderTextColor={darkTheme.colors.textSecondary}
+                                value={newMessage}
+                                onChangeText={(value) => {
+                                    setNewMessage(value);
+                                    if (aiError) {
+                                        setAiError('');
+                                    }
+                                }}
+                                multiline
+                                maxLength={1000}
+                                onSubmitEditing={() => sendMessage(newMessage)}
+                            />
+
+                            <TouchableOpacity
+                                style={[styles.sendButton, (!newMessage.trim() || sending) && styles.sendButtonDisabled]}
+                                onPress={() => sendMessage(newMessage)}
+                                disabled={!newMessage.trim() || sending}
+                            >
+                                {sending ? (
+                                    <ActivityIndicator size="small" color="#fff" />
+                                ) : (
+                                    <Text style={styles.sendButtonText}>➤</Text>
+                                )}
+                            </TouchableOpacity>
+                        </>
+                    )}
                 </View>
             </KeyboardAvoidingView>
         </SafeAreaView>
@@ -655,5 +877,63 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    recordingBar: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: darkTheme.colors.card,
+        borderWidth: 1,
+        borderColor: darkTheme.colors.border,
+        borderRadius: 20,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+    },
+    recordingInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    recordingDot: {
+        color: '#ef4444',
+        fontSize: 14,
+    },
+    recordingText: {
+        color: darkTheme.colors.text,
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    recordingActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    recordingCancelButton: {
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+    },
+    recordingCancelText: {
+        color: darkTheme.colors.textSecondary,
+        fontSize: 13,
+        fontWeight: '600',
+    },
+    recordingSendButton: {
+        backgroundColor: darkTheme.colors.primary,
+        borderRadius: 14,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        minWidth: 92,
+        alignItems: 'center',
+    },
+    recordingSendText: {
+        color: '#fff',
+        fontSize: 13,
+        fontWeight: '700',
+    },
+    errorStateText: {
+        color: '#fff',
+        textAlign: 'center',
+        marginTop: 20,
     },
 });
