@@ -96,7 +96,7 @@ exports.rewriteMessage = async (req, res) => {
         console.error('AI rewrite error:', error);
 
         res.status(502).json({
-            error: 'Failed to rewrite text with GigaChat.'
+            error: 'Failed to rewrite text with GigaChat'
         });
     }
 };
