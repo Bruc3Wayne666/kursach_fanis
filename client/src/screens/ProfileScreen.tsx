@@ -52,22 +52,29 @@ export default function ProfileScreen({ navigation, route }: any) {
         if (!targetUserId) return;
 
         try {
-            const [followersResponse, followingResponse] = await Promise.all([
+            const requests = [
                 api.get(`/users/${targetUserId}/followers`).catch(() => ({ data: { followers: [] } })),
                 api.get(`/users/${targetUserId}/following`).catch(() => ({ data: { following: [] } }))
-            ]);
+            ];
+
+            if (isOwnProfile) {
+                requests.push(api.get('/communities/subscribed').catch(() => ({ data: { communities: [] } })));
+            }
+
+            const [followersResponse, followingResponse, communitiesResponse] = await Promise.all(requests as any);
+            const communitiesCount = isOwnProfile ? (communitiesResponse?.data?.communities?.length || 0) : 0;
 
             setStats(prev => ({
                 ...prev,
                 followers: followersResponse.data.followers?.length || 0,
-                following: followingResponse.data.following?.length || 0,
+                following: (followingResponse.data.following?.length || 0) + communitiesCount,
             }));
         } catch (error) {
             console.error('Error loading stats:', error);
         } finally {
             setLoading(false);
         }
-    }, [targetUserId]);
+    }, [isOwnProfile, targetUserId]);
 
     // 🔥 FIX 2: Используем useCallback для loadUserPosts
     const loadUserPosts = useCallback(() => {
@@ -249,6 +256,14 @@ export default function ProfileScreen({ navigation, route }: any) {
                 </Text>
                 <View style={styles.headerButtons}>
                     {isOwnProfile && (
+                        <TouchableOpacity
+                            style={styles.communitiesHeaderButton}
+                            onPress={() => navigation.navigate('Communities')}
+                        >
+                            <Text style={styles.communitiesHeaderButtonText}>Паблики</Text>
+                        </TouchableOpacity>
+                    )}
+                    {isOwnProfile && (
                         <TouchableOpacity onPress={handleLogout}>
                             <Text style={styles.logoutButton}>Выйти</Text>
                         </TouchableOpacity>
@@ -328,6 +343,13 @@ export default function ProfileScreen({ navigation, route }: any) {
                                         onPress={() => navigation.navigate('Friends')}
                                     >
                                         <Text style={styles.friendsButtonText}>👥 Друзья</Text>
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity
+                                        style={styles.friendsButton}
+                                        onPress={() => navigation.navigate('Communities')}
+                                    >
+                                        <Text style={styles.friendsButtonText}>📣 Паблики</Text>
                                     </TouchableOpacity>
                                 </View>
                             )}
@@ -418,6 +440,19 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
     },
+    communitiesHeaderButton: {
+        backgroundColor: darkTheme.colors.card,
+        borderWidth: 1,
+        borderColor: darkTheme.colors.border,
+        borderRadius: 16,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+    },
+    communitiesHeaderButtonText: {
+        color: darkTheme.colors.primary,
+        fontSize: 13,
+        fontWeight: '700',
+    },
     content: {
         padding: 15,
     },
@@ -500,6 +535,7 @@ const styles = StyleSheet.create({
     },
     actionButtons: {
         flexDirection: 'row',
+        flexWrap: 'wrap',
         gap: 10,
         marginBottom: 20,
     },

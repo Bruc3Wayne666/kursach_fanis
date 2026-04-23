@@ -30,6 +30,12 @@ interface Post {
         name: string;
         avatar?: string;
     };
+    Community?: {
+        id: string;
+        name: string;
+        avatar?: string;
+        description?: string;
+    };
 }
 
 // В PostCard.tsx измени интерфейс:
@@ -89,11 +95,17 @@ export default function PostCard({ post, onPress, onLike, onComment }: PostCardP
     };
 
     const imageUrl = getImageUrl();
-    const authorName = post.User?.name || post.author || 'Аноним';
-    const authorId = post.User?.id || post.userId;
+    const isCommunityPost = Boolean(post.Community?.id);
+    const authorName = post.Community?.name || post.User?.name || post.author || 'Аноним';
+    const authorId = post.Community?.id || post.User?.id || post.userId;
 
     const handleAuthorPress = () => {
         if (!authorId) {
+            return;
+        }
+
+        if (isCommunityPost) {
+            navigation.navigate('Community', { communityId: authorId });
             return;
         }
 
@@ -114,13 +126,16 @@ export default function PostCard({ post, onPress, onLike, onComment }: PostCardP
                 activeOpacity={0.8}
             >
                 <Avatar
-                    avatar={post.User?.avatar}
-                    name={post.User?.name || post.author}
+                    avatar={post.Community?.avatar || post.User?.avatar}
+                    name={post.Community?.name || post.User?.name || post.author}
                     username={post.User?.username}
                     size={42}
                 />
                 <View style={styles.headerInfo}>
                     <Text style={styles.author}>{authorName}</Text>
+                    {isCommunityPost && (
+                        <Text style={styles.communityMeta}>Паблик</Text>
+                    )}
                     <Text style={styles.date}>{formatPostDateTime(post.createdAt)}</Text>
                 </View>
             </TouchableOpacity>
@@ -205,6 +220,11 @@ const styles = StyleSheet.create({
         color: darkTheme.colors.textSecondary,
         fontSize: 12,
         marginBottom: 10,
+    },
+    communityMeta: {
+        color: darkTheme.colors.textSecondary,
+        fontSize: 11,
+        marginBottom: 2,
     },
     title: {
         color: darkTheme.colors.text,

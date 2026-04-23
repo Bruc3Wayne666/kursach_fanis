@@ -34,7 +34,15 @@ export default function FollowListScreen({ route, navigation }: any) {
         try {
             setLoading(true);
             const endpoint = type === 'followers' ? 'followers' : 'following';
-            const response = await api.get(`/users/${userId}/${endpoint}`);
+            const requests = [api.get(`/users/${userId}/${endpoint}`)];
+
+            const isOwnFollowing = type === 'following' && String(userId) === String(currentUser?.id);
+            if (isOwnFollowing) {
+                requests.push(api.get('/communities/subscribed'));
+            }
+
+            const responses = await Promise.all(requests);
+            const response = responses[0];
 
             // 🔥 ЗАЩИТА ОТ НЕКОРРЕКТНЫХ ДАННЫХ
             const usersData = response.data?.[type] || response.data || [];
@@ -59,11 +67,31 @@ export default function FollowListScreen({ route, navigation }: any) {
                     username: user.username || 'user',
                     avatar: user.avatar || null,
                     isOnline: Boolean(user.isOnline),
-                    isFollowing: type === 'following' ? true : Boolean(user.isFollowing)
+                    isFollowing: type === 'following' ? true : Boolean(user.isFollowing),
+                    entityType: 'user',
                 };
             }).filter(Boolean); // Убираем null значения
 
-            setUsers(usersWithFollowStatus);
+            let nextItems = usersWithFollowStatus;
+
+            if (isOwnFollowing) {
+                const communityItems = (responses[1]?.data?.communities || []).map((community: any) => ({
+                    id: community.id?.toString() || Math.random().toString(),
+                    name: community.name || 'Паблик',
+                    username: community.Owner?.username || 'community',
+                    avatar: community.avatar || null,
+                    isOnline: false,
+                    isFollowing: Boolean(community.isSubscribed),
+                    entityType: 'community',
+                    description: community.description || '',
+                    subscribersCount: community.subscribersCount || 0,
+                    isOwner: Boolean(community.isOwner),
+                }));
+
+                nextItems = [...usersWithFollowStatus, ...communityItems];
+            }
+
+            setUsers(nextItems);
         } catch (error) {
             console.error('Error loading users:', error);
             Alert.alert('Ошибка', 'Не удалось загрузить список');
@@ -71,7 +99,7 @@ export default function FollowListScreen({ route, navigation }: any) {
         } finally {
             setLoading(false);
         }
-    }, [type, userId]);
+    }, [currentUser?.id, type, userId]);
 
     useEffect(() => {
         if (!isFocused) {
@@ -122,6 +150,27 @@ export default function FollowListScreen({ route, navigation }: any) {
         }
     };
 
+    const handleCommunityUnsubscribe = async (communityId: string) => {
+        if (!communityId) {
+            return;
+        }
+
+        setFollowLoading(communityId);
+        const previousUsers = users;
+
+        try {
+            setUsers(users.filter(item => item && item.id !== communityId));
+            await api.delete(`/communities/${communityId}/subscribe`);
+            onRelationChanged?.();
+        } catch (error: any) {
+            console.error('Community unsubscribe error:', error);
+            setUsers(previousUsers);
+            Alert.alert('Ошибка', error?.response?.data?.error || 'Не удалось отписаться от паблика');
+        } finally {
+            setFollowLoading(null);
+        }
+    };
+
     const getFollowButtonText = (user: any) => {
         if (!user || user.id === currentUser?.id) return null;
 
@@ -141,6 +190,52 @@ export default function FollowListScreen({ route, navigation }: any) {
         // Защита от некорректных данных
         if (!item || !item.id) {
             return null;
+        }
+
+        if (item.entityType === 'community') {
+            const isLoading = followLoading === item.id;
+
+            return (
+                <View style={styles.userCard}>
+                    <TouchableOpacity
+                        style={styles.userInfo}
+                        onPress={() => navigation.navigate('Community', { communityId: item.id })}
+                    >
+                        <Avatar
+                            avatar={item.avatar}
+                            name={item.name}
+                            username={item.username}
+                            size={50}
+                            style={styles.avatar}
+                        />
+                        <View style={styles.userMeta}>
+                            <Text style={styles.userName}>{item.name}</Text>
+                            <Text style={styles.userUsername}>
+                                Паблик • {item.subscribersCount || 0} подписчиков
+                            </Text>
+                            <Text style={styles.statusText} numberOfLines={1}>
+                                {item.description || (item.isOwner ? 'Ваш паблик' : 'Подписка на паблик')}
+                            </Text>
+                        </View>
+                    </TouchableOpacity>
+
+                    {!item.isOwner && (
+                        <TouchableOpacity
+                            style={[styles.followButton, styles.unfollowButton, isLoading && styles.loadingButton]}
+                            onPress={() => handleCommunityUnsubscribe(item.id)}
+                            disabled={isLoading}
+                        >
+                            {isLoading ? (
+                                <ActivityIndicator size="small" color={darkTheme.colors.text} />
+                            ) : (
+                                <Text style={[styles.followButtonText, styles.unfollowButtonText]}>
+                                    Отписаться
+                                </Text>
+                            )}
+                        </TouchableOpacity>
+                    )}
+                </View>
+            );
         }
 
         const isLoading = followLoading === item.id;
@@ -250,7 +345,7 @@ export default function FollowListScreen({ route, navigation }: any) {
                         <Text style={styles.emptyText}>
                             {type === 'followers'
                                 ? 'У вас пока нет подписчиков'
-                                : 'Вы пока ни на кого не подписаны'
+                                : 'Вы пока ни на кого не подписаны и не подписаны на паблики'
                             }
                         </Text>
                     </View>

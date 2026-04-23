@@ -124,6 +124,7 @@ exports.searchUsers = async (req, res) => {
         const usersWithRelation = await Promise.all(
             users.map(async (user) => ({
                 ...user.toJSON(),
+                entityType: 'user',
                 relation: await buildRelationStatus(currentUserId, user.id),
             }))
         );

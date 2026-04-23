@@ -15,6 +15,11 @@ const Post = sequelize.define('Post', {
         type: DataTypes.STRING,
         defaultValue: null
     },
+    communityId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        defaultValue: null
+    },
     likesCount: {
         type: DataTypes.INTEGER,
         defaultValue: 0

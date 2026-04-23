@@ -173,6 +173,12 @@
       <change beforePath="$PROJECT_DIR$/client - Copy" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/client - Copy/client - Copy" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/client/client" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/controllers/postController.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/controllers/postController.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/controllers/userController.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/controllers/userController.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/models/Post.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/models/Post.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/models/associations.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/models/associations.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/routes/posts.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/routes/posts.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/server.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/server.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -317,7 +323,7 @@
       <workItem from="1774255080666" duration="1877000" />
       <workItem from="1775004554540" duration="14000" />
       <workItem from="1775103959834" duration="595000" />
-      <workItem from="1776885929733" duration="12156000" />
+      <workItem from="1776885929733" duration="12931000" />
     </task>
     <servers />
   </component>

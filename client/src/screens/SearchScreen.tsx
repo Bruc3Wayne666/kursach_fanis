@@ -11,9 +11,15 @@ import {
     Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
-import { searchUsers, clearSearch, updateUserRelation } from '../store/slices/usersSlice';
+import {
+    searchUsers,
+    clearSearch,
+    updateCommunitySubscription,
+    updateUserRelation
+} from '../store/slices/usersSlice';
 import { darkTheme } from '../themes/dark';
 import { api } from '../services/api';
 import Avatar from '../components/Avatar';
@@ -149,6 +155,29 @@ export default function SearchScreen() {
         }
     };
 
+    const handleToggleCommunitySubscribe = async (community: any) => {
+        setFriendLoading(community.id);
+        try {
+            const response = community.isSubscribed
+                ? await api.delete(`/communities/${community.id}/subscribe`)
+                : await api.post(`/communities/${community.id}/subscribe`);
+
+            dispatch(updateCommunitySubscription({
+                communityId: community.id,
+                changes: {
+                    isSubscribed: response.data.community.isSubscribed,
+                    subscribersCount: response.data.community.subscribersCount,
+                    isOwner: response.data.community.isOwner,
+                },
+            }));
+        } catch (error: any) {
+            console.error('Community subscribe toggle error:', error);
+            Alert.alert('Ошибка', error.response?.data?.error || 'Не удалось обновить подписку');
+        } finally {
+            setFriendLoading(null);
+        }
+    };
+
     const viewProfile = (user: any) => {
         console.log('👤 Navigating to user profile:', user.id);
         if (String(user.id) === String(currentUser?.id)) {
@@ -156,6 +185,10 @@ export default function SearchScreen() {
             return;
         }
         navigation.navigate('UserProfile', { userId: user.id });
+    };
+
+    const viewCommunity = (community: any) => {
+        navigation.navigate('Community', { communityId: community.id });
     };
 
     const startChat = (user: any) => {
@@ -179,7 +212,7 @@ export default function SearchScreen() {
         }
     };
 
-    const renderSearchItem = ({ item }: { item: any }) => {
+    const renderUserItem = (item: any) => {
         const isLoading = friendLoading === item.id;
         const relation = item.relation || {};
         const isOwnProfile = relation.isOwnProfile || false;
@@ -245,13 +278,81 @@ export default function SearchScreen() {
                             style={styles.chatButton}
                             onPress={() => startChat(item)}
                         >
-                            <Text style={styles.chatButtonText}>💬</Text>
+                            <Ionicons name="chatbubble-ellipses-outline" size={18} color="#fff" />
                         </TouchableOpacity>
                     ) : null}
                 </View>
             </View>
         );
     };
+
+    const renderCommunityItem = (item: any) => {
+        const isLoading = friendLoading === item.id;
+
+        return (
+            <View style={styles.userCard}>
+                <TouchableOpacity
+                    style={styles.userInfo}
+                    onPress={() => viewCommunity(item)}
+                >
+                    <Avatar
+                        avatar={item.avatar}
+                        name={item.name}
+                        size={50}
+                        style={styles.avatar}
+                    />
+                    <View style={styles.userDetails}>
+                        <Text style={styles.userName}>{item.name}</Text>
+                        <Text style={styles.userUsername}>
+                            Паблик • {item.subscribersCount || 0} подписчиков
+                        </Text>
+                        {item.description ? (
+                            <Text style={styles.userBio} numberOfLines={1}>
+                                {item.description}
+                            </Text>
+                        ) : null}
+                    </View>
+                </TouchableOpacity>
+
+                <View style={styles.actions}>
+                    {item.isOwner ? (
+                        <View style={styles.ownerTag}>
+                            <Text style={styles.ownerTagText}>Админ</Text>
+                        </View>
+                    ) : (
+                        <TouchableOpacity
+                            style={[
+                                styles.addFriendButton,
+                                item.isSubscribed && styles.addFriendButtonMuted
+                            ]}
+                            onPress={() => handleToggleCommunitySubscribe(item)}
+                            disabled={isLoading}
+                        >
+                            {isLoading ? (
+                                <ActivityIndicator
+                                    size="small"
+                                    color={item.isSubscribed ? darkTheme.colors.text : '#fff'}
+                                />
+                            ) : (
+                                <Text
+                                    style={[
+                                        styles.addFriendText,
+                                        item.isSubscribed && styles.addFriendTextMuted,
+                                    ]}
+                                >
+                                    {item.isSubscribed ? 'Вы подписаны' : 'Подписаться'}
+                                </Text>
+                            )}
+                        </TouchableOpacity>
+                    )}
+                </View>
+            </View>
+        );
+    };
+
+    const renderSearchItem = ({ item }: { item: any }) => (
+        item.entityType === 'community' ? renderCommunityItem(item) : renderUserItem(item)
+    );
 
     const renderFriendItem = ({ item }: { item: any }) => (
         <View style={styles.userCard}>
@@ -282,7 +383,7 @@ export default function SearchScreen() {
                     style={styles.chatButton}
                     onPress={() => startChat(item)}
                 >
-                    <Text style={styles.chatButtonText}>💬</Text>
+                    <Ionicons name="chatbubble-ellipses-outline" size={18} color="#fff" />
                 </TouchableOpacity>
             </View>
         </View>
@@ -335,7 +436,7 @@ export default function SearchScreen() {
                             {searchLoading ? (
                                 <ActivityIndicator size="small" color="#fff" />
                             ) : (
-                                <Text style={styles.searchButtonText}>🔍</Text>
+                                <Ionicons name="search-outline" size={20} color="#fff" />
                             )}
                         </TouchableOpacity>
                     </View>
@@ -353,14 +454,14 @@ export default function SearchScreen() {
                         <View style={styles.emptyContainer}>
                             <Text style={styles.emptyText}>Пользователи не найдены</Text>
                             <Text style={styles.emptySubtext}>
-                                Попробуйте изменить запрос поиска
+                                Попробуйте другой запрос для людей или пабликов
                             </Text>
                         </View>
                     ) : (
                         <View style={styles.initialContainer}>
-                            <Text style={styles.initialText}>Найдите друзей</Text>
+                            <Text style={styles.initialText}>Найдите людей и паблики</Text>
                             <Text style={styles.initialSubtext}>
-                                Введите имя или username пользователя
+                                Введите имя, username или название паблика
                             </Text>
                         </View>
                     )}
@@ -451,10 +552,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    searchButtonText: {
-        color: '#fff',
-        fontSize: 18,
-    },
     resultsList: {
         flex: 1,
     },
@@ -532,6 +629,17 @@ const styles = StyleSheet.create({
     chatButtonText: {
         color: '#fff',
         fontSize: 16,
+    },
+    ownerTag: {
+        backgroundColor: darkTheme.colors.primary,
+        borderRadius: 16,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+    },
+    ownerTagText: {
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: '700',
     },
     emptyContainer: {
         flex: 1,

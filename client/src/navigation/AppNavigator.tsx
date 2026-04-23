@@ -21,6 +21,9 @@ import UserProfileScreen from '../screens/UserProfileScreen';
 import FriendRequestsScreen from '../screens/FriendRequestScreen';
 import CreateConversationScreen from '../screens/CreateConversationScreen';
 import ConversationInfoScreen from '../screens/ConversationInfoScreen';
+import CommunitiesScreen from '../screens/CommunitiesScreen';
+import CommunityScreen from '../screens/CommunityScreen';
+import CommunityFormScreen from '../screens/CommunityFormScreen';
 import {darkTheme} from "../themes/dark.ts"; // 🔥 ДОБАВЛЯЕМ
 
 const Stack = createNativeStackNavigator();
@@ -177,6 +180,30 @@ export default function AppNavigator() {
                     <Stack.Screen
                         name="ConversationInfo"
                         component={ConversationInfoScreen}
+                        options={{
+                            presentation: 'card',
+                            headerShown: false
+                        }}
+                    />
+                    <Stack.Screen
+                        name="Communities"
+                        component={CommunitiesScreen}
+                        options={{
+                            presentation: 'card',
+                            headerShown: false
+                        }}
+                    />
+                    <Stack.Screen
+                        name="Community"
+                        component={CommunityScreen}
+                        options={{
+                            presentation: 'card',
+                            headerShown: false
+                        }}
+                    />
+                    <Stack.Screen
+                        name="CommunityForm"
+                        component={CommunityFormScreen}
                         options={{
                             presentation: 'card',
                             headerShown: false

@@ -8,10 +8,16 @@ const Like = require('./Like');
 const Conversation = require('./Conversation');
 const ConversationMember = require('./ConversationMember');
 const Friendship = require('./Friendship');
+const Community = require('./Community');
+const CommunitySubscription = require('./CommunitySubscription');
 
 // User - Post (один ко многим)
 User.hasMany(Post, { foreignKey: 'userId', onDelete: 'CASCADE' });
 Post.belongsTo(User, { foreignKey: 'userId' });
+
+// Community - Post
+Community.hasMany(Post, { foreignKey: 'communityId', onDelete: 'CASCADE' });
+Post.belongsTo(Community, { foreignKey: 'communityId' });
 
 // Подписки (многие ко многим через Follow)
 User.belongsToMany(User, {
@@ -119,6 +125,29 @@ User.hasMany(Friendship, {
     as: 'ReceivedFriendRequests'
 });
 
+// Паблики
+User.hasMany(Community, {
+    foreignKey: 'ownerId',
+    as: 'OwnedCommunities'
+});
+
+Community.belongsTo(User, {
+    foreignKey: 'ownerId',
+    as: 'Owner'
+});
+
+User.belongsToMany(Community, {
+    through: CommunitySubscription,
+    as: 'SubscribedCommunities',
+    foreignKey: 'userId'
+});
+
+Community.belongsToMany(User, {
+    through: CommunitySubscription,
+    as: 'Subscribers',
+    foreignKey: 'communityId'
+});
+
 Friendship.belongsTo(User, {
     foreignKey: 'userId',
     as: 'User'
@@ -138,5 +167,7 @@ module.exports = {
     Like,
     Conversation,
     ConversationMember,
-    Friendship
+    Friendship,
+    Community,
+    CommunitySubscription
 };

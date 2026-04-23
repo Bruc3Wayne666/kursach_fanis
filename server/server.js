@@ -18,6 +18,7 @@ const commentRoutes = require('./routes/comments');
 const conversationRoutes = require('./routes/conversations'); // 🔥 НОВЫЙ
 const friendsRoutes = require('./routes/friends'); // 🔥 НОВЫЙ
 const aiRoutes = require('./routes/ai');
+const communityRoutes = require('./routes/communities');
 
 dotenv.config();
 
@@ -57,6 +58,29 @@ const ensureMessageTypeEnumValues = async () => {
     }
 };
 
+const ensureCommunitySchema = async () => {
+    await sequelize.query(`
+        ALTER TABLE "Posts"
+        ADD COLUMN IF NOT EXISTS "communityId" UUID;
+    `);
+
+    await sequelize.query(`
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1
+                FROM information_schema.table_constraints
+                WHERE constraint_name = 'Posts_communityId_fkey'
+            ) THEN
+                ALTER TABLE "Posts"
+                ADD CONSTRAINT "Posts_communityId_fkey"
+                FOREIGN KEY ("communityId") REFERENCES "Communities"("id")
+                ON DELETE SET NULL;
+            END IF;
+        END $$;
+    `);
+};
+
 // Настройка CORS
 app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -86,6 +110,7 @@ app.use('/api/posts', commentRoutes);
 app.use('/api/conversations', conversationRoutes); // 🔥 НОВЫЙ
 app.use('/api/friends', friendsRoutes); // 🔥 НОВЫЙ
 app.use('/api/ai', aiRoutes);
+app.use('/api/communities', communityRoutes);
 
 // Роут для загрузки файлов
 app.post('/api/upload', upload.fields([
@@ -137,6 +162,7 @@ const PORT = process.env.PORT || 5000;
 sequelize.sync({ force: false })
     .then(async () => {
         await ensureMessageTypeEnumValues();
+        await ensureCommunitySchema();
         console.log('✅ Database connected and synced');
         server.listen(PORT, '0.0.0.0', () => {
             console.log(`🚀 Server running on all interfaces (0.0.0.0) port ${PORT}`);

@@ -31,7 +31,7 @@ export const fetchUserPosts = createAsyncThunk(
 
 export const createPost = createAsyncThunk(
     'posts/createPost',
-    async (postData: { content: string, image?: string }, { rejectWithValue }) => {
+    async (postData: { content: string, image?: string, communityId?: string | null }, { rejectWithValue }) => {
         try {
             const response = await api.post('/posts', postData);
             return response.data.post;
