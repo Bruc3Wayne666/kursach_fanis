@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     View,
     Text,
@@ -22,11 +22,7 @@ export default function FollowListScreen({ route, navigation }: any) {
     const currentUser = useSelector((state: any) => state.auth.user);
     const dispatch = useDispatch();
 
-    useEffect(() => {
-        loadUsers();
-    }, []);
-
-    const loadUsers = async () => {
+    const loadUsers = useCallback(async () => {
         try {
             const endpoint = type === 'followers' ? 'followers' : 'following';
             const response = await api.get(`/users/${userId}/${endpoint}`);
@@ -43,7 +39,11 @@ export default function FollowListScreen({ route, navigation }: any) {
         } finally {
             setLoading(false);
         }
-    };
+    }, [type, userId]);
+
+    useEffect(() => {
+        loadUsers();
+    }, [loadUsers]);
 
     const handleFollow = async (targetUserId: string, isCurrentlyFollowing: boolean) => {
         if (targetUserId === currentUser?.id) return;
@@ -167,7 +167,7 @@ export default function FollowListScreen({ route, navigation }: any) {
 
     if (loading) {
         return (
-            <SafeAreaView style={styles.centerContainer}>
+            <SafeAreaView style={styles.centerContainer} edges={['left', 'right', 'bottom']}>
                 <ActivityIndicator size="large" color={darkTheme.colors.primary} />
                 <Text style={styles.loadingText}>Загрузка...</Text>
             </SafeAreaView>
@@ -175,7 +175,7 @@ export default function FollowListScreen({ route, navigation }: any) {
     }
 
     return (
-        <SafeAreaView style={styles.container} edges={['top']}>
+        <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Text style={styles.backButton}>← Назад</Text>

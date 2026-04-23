@@ -11,6 +11,7 @@ import {
     Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import {useSelector, useDispatch} from 'react-redux';
 import {useNavigation, useIsFocused} from '@react-navigation/native';
 import {darkTheme} from '../themes/dark';
@@ -319,7 +320,7 @@ export default function MessagesScreen() {
 
     if (loading && sortedChats.length === 0 && !refreshing) {
         return (
-            <SafeAreaView style={styles.container}>
+            <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
                 <View style={styles.header}>
                     <Text style={styles.title}>Сообщения</Text>
                     <View style={styles.headerActions}>
@@ -327,13 +328,13 @@ export default function MessagesScreen() {
                             style={styles.conversationButton}
                             onPress={startNewConversation}
                         >
-                            <Text style={styles.conversationButtonText}>👥</Text>
+                            <Ionicons name="people-outline" size={18} color={darkTheme.colors.text} />
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={styles.searchButton}
                             onPress={startNewChat}
                         >
-                            <Text style={styles.searchButtonText}>💬</Text>
+                            <Ionicons name="chatbubble-ellipses-outline" size={18} color={darkTheme.colors.text} />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -347,7 +348,7 @@ export default function MessagesScreen() {
 
     return (
         <>
-            <SafeAreaView style={styles.container} edges={['top']}>
+            <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
                 <View style={styles.header}>
                     <Text style={styles.title}>Сообщения</Text>
                     <View style={styles.headerActions}>
@@ -355,13 +356,13 @@ export default function MessagesScreen() {
                             style={styles.conversationButton}
                             onPress={startNewConversation}
                         >
-                            <Text style={styles.conversationButtonText}>👥</Text>
+                            <Ionicons name="people-outline" size={18} color={darkTheme.colors.text} />
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={styles.searchButton}
                             onPress={startNewChat}
                         >
-                            <Text style={styles.searchButtonText}>💬</Text>
+                            <Ionicons name="chatbubble-ellipses-outline" size={18} color={darkTheme.colors.text} />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -427,7 +428,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 15,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
         borderBottomWidth: 1,
         borderBottomColor: darkTheme.colors.border,
     },
@@ -437,34 +439,26 @@ const styles = StyleSheet.create({
     },
     title: {
         color: darkTheme.colors.text,
-        fontSize: 24,
+        fontSize: 22,
         fontWeight: 'bold',
     },
     conversationButton: {
-        padding: 8,
-        borderRadius: 20,
+        padding: 6,
+        borderRadius: 18,
         backgroundColor: darkTheme.colors.card,
-        width: 40,
-        height: 40,
+        width: 36,
+        height: 36,
         alignItems: 'center',
         justifyContent: 'center',
-    },
-    conversationButtonText: {
-        fontSize: 18,
-        color: darkTheme.colors.text,
     },
     searchButton: {
-        padding: 8,
-        borderRadius: 20,
+        padding: 6,
+        borderRadius: 18,
         backgroundColor: darkTheme.colors.card,
-        width: 40,
-        height: 40,
+        width: 36,
+        height: 36,
         alignItems: 'center',
         justifyContent: 'center',
-    },
-    searchButtonText: {
-        fontSize: 18,
-        color: darkTheme.colors.text,
     },
     centerContainer: {
         flex: 1,

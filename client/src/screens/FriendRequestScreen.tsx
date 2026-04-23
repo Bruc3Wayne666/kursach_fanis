@@ -170,7 +170,7 @@ export default function FriendRequestsScreen() {
 
     if (loading) {
         return (
-            <SafeAreaView style={styles.centerContainer}>
+            <SafeAreaView style={styles.centerContainer} edges={['left', 'right', 'bottom']}>
                 <ActivityIndicator size="large" color={darkTheme.colors.primary} />
                 <Text style={styles.loadingText}>Загрузка запросов...</Text>
             </SafeAreaView>
@@ -178,7 +178,7 @@ export default function FriendRequestsScreen() {
     }
 
     return (
-        <SafeAreaView style={styles.container} edges={['top']}>
+        <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Text style={styles.backButton}>← Назад</Text>

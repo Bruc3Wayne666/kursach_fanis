@@ -145,7 +145,7 @@ export default function EditProfileScreen({navigation}: any) {
     const avatarUrl = getAvatarUrl();
 
     return (
-        <SafeAreaView style={styles.container} edges={['top']}>
+        <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Text style={styles.cancelButton}>Отмена</Text>

@@ -173,13 +173,6 @@
       <change beforePath="$PROJECT_DIR$/client - Copy" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/client - Copy/client - Copy" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/client/client" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/controllers/conversationController.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/controllers/conversationController.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/controllers/messageController.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/controllers/messageController.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/controllers/userController.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/controllers/userController.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/models/Message.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/models/Message.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/routes/conversations.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/routes/conversations.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/routes/users.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/routes/users.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/server.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/server.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -197,7 +190,7 @@
     </option>
   </component>
   <component name="Git.Settings">
-    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/client" />
   </component>
   <component name="GitHubPullRequestSearchHistory">{
   &quot;lastFilter&quot;: {
@@ -228,7 +221,7 @@
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
     "git-widget-placeholder": "master",
-    "last_opened_file_path": "C:/Users/mm/WebstormProjects/kursach_fanis",
+    "last_opened_file_path": "C:/Users/mm/WebstormProjects/kursach_fanis/client/src/assets",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -241,6 +234,7 @@
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\mm\WebstormProjects\kursach_fanis\client\src\assets" />
       <recent name="C:\Users\mm\WebstormProjects\kursach_fanis\temp" />
       <recent name="C:\Users\mm\WebstormProjects\kursach_fanis\server" />
       <recent name="C:\Users\mm\WebstormProjects\kursach_fanis\client" />
@@ -323,7 +317,7 @@
       <workItem from="1774255080666" duration="1877000" />
       <workItem from="1775004554540" duration="14000" />
       <workItem from="1775103959834" duration="595000" />
-      <workItem from="1776885929733" duration="7920000" />
+      <workItem from="1776885929733" duration="12156000" />
     </task>
     <servers />
   </component>

@@ -9,7 +9,7 @@ import {
     ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
-    ScrollView
+    ScrollView, Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
@@ -86,7 +86,7 @@ export default function RegisterScreen({ navigation }: any) {
     };
 
     return (
-        <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'bottom']}>
             <KeyboardAvoidingView
                 style={styles.keyboardAvoidingView}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -97,6 +97,12 @@ export default function RegisterScreen({ navigation }: any) {
                     keyboardShouldPersistTaps="handled"
                 >
                     <View style={styles.container}>
+                        <Image
+                            source={require('../assets/logo.png')}
+                            style={styles.logo}
+                            resizeMode="contain"
+                        />
+
                         <Text style={styles.title}>Регистрация</Text>
 
                         <TextInput
@@ -178,6 +184,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 20,
         minHeight: '100%',
+    },
+    logo: {
+        width: 192,
+        height: 192,
+        borderRadius: 24,
+        marginBottom: 16,
     },
     title: {
         color: '#fff',

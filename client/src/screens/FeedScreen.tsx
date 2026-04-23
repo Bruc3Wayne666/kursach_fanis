@@ -1,5 +1,5 @@
 // src/screens/FeedScreen.tsx - ИСПРАВЛЕННАЯ ВЕРСИЯ
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
     View,
     Text,
@@ -27,9 +27,35 @@ export default function FeedScreen() {
     const [refreshing, setRefreshing] = useState(false);
     const pollingRef = useRef<NodeJS.Timeout | null>(null);
     const isMountedRef = useRef(true);
+    const emptyListContent = styles.emptyListContent;
 
     // Инициализация posts как пустого массива если undefined/null
     const safePosts = posts || [];
+
+    // Polling для обновления ленты
+    const loadPosts = useCallback(() => {
+        dispatch(fetchPosts() as any);
+    }, [dispatch]);
+
+    const stopPolling = useCallback(() => {
+        if (pollingRef.current) {
+            console.log('🛑 Stopping polling for feed...');
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+        }
+    }, []);
+
+    const startPolling = useCallback(() => {
+        if (pollingRef.current) return;
+
+        console.log('🔄 Starting polling for feed...');
+        loadPosts(); // Первая загрузка
+        pollingRef.current = setInterval(() => {
+            if (isMountedRef.current && !isModalVisible) { // 🔥 НЕ обновляем когда открыта модалка
+                loadPosts();
+            }
+        }, 5000); // Каждые 5 секунд
+    }, [isModalVisible, loadPosts]);
 
     useEffect(() => {
         isMountedRef.current = true;
@@ -44,32 +70,7 @@ export default function FeedScreen() {
             isMountedRef.current = false;
             stopPolling();
         };
-    }, [isFocused]);
-
-    // Polling для обновления ленты
-    const startPolling = () => {
-        if (pollingRef.current) return;
-
-        console.log('🔄 Starting polling for feed...');
-        loadPosts(); // Первая загрузка
-        pollingRef.current = setInterval(() => {
-            if (isMountedRef.current && !isModalVisible) { // 🔥 НЕ обновляем когда открыта модалка
-                loadPosts();
-            }
-        }, 5000); // Каждые 5 секунд
-    };
-
-    const stopPolling = () => {
-        if (pollingRef.current) {
-            console.log('🛑 Stopping polling for feed...');
-            clearInterval(pollingRef.current);
-            pollingRef.current = null;
-        }
-    };
-
-    const loadPosts = () => {
-        dispatch(fetchPosts() as any);
-    };
+    }, [isFocused, startPolling, stopPolling]);
 
     const onRefresh = () => {
         setRefreshing(true);
@@ -83,7 +84,7 @@ export default function FeedScreen() {
         }
     }, [error]);
 
-    const handleCreatePost = (title: string, content: string, image?: string) => {
+    const handleCreatePost = useCallback((title: string, content: string, image?: string) => {
         const postContent = title ? `${title}\n\n${content}` : content;
 
         console.log('📤 Создание поста:', {
@@ -103,19 +104,15 @@ export default function FeedScreen() {
                 loadPosts();
             }
         }, 2000);
-    };
+    }, [dispatch, loadPosts]);
 
     const handleLike = async (postId: string) => {
         try {
             // Добавь 'as any' вот сюда
             return await dispatch(toggleLikeAction(postId) as any).unwrap();
-        } catch (err) {
+        } catch {
             Alert.alert('Ошибка', 'Не удалось изменить лайк');
         }
-    };
-
-    const handleComment = (postId: string) => {
-        navigation.navigate('Comments', { postId });
     };
 
     // 🔥 Останавливаем polling когда открыта модалка
@@ -137,7 +134,7 @@ export default function FeedScreen() {
 
     if (loading && safePosts.length === 0) {
         return (
-            <SafeAreaView style={styles.centerContainer}>
+            <SafeAreaView style={styles.centerContainer} edges={['left', 'right', 'bottom']}>
                 <ActivityIndicator size="large" color={darkTheme.colors.primary} />
                 <Text style={styles.loadingText}>Загрузка ленты...</Text>
             </SafeAreaView>
@@ -145,7 +142,7 @@ export default function FeedScreen() {
     }
 
     return (
-        <SafeAreaView style={styles.container} edges={['top']}>
+        <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
             {/* Шапка БЕЗ КНОПКИ ВЫХОДА */}
             <View style={styles.header}>
                 <Text style={styles.title}>Лента</Text>
@@ -213,7 +210,7 @@ export default function FeedScreen() {
                         </TouchableOpacity>
                     </View>
                 }
-                contentContainerStyle={safePosts.length === 0 ? { flex: 1 } : null}
+                contentContainerStyle={safePosts.length === 0 ? emptyListContent : undefined}
             />
 
             {/* Модальное окно создания поста */}
@@ -316,5 +313,8 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 14,
         fontWeight: '600',
+    },
+    emptyListContent: {
+        flex: 1,
     },
 });

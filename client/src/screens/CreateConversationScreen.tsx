@@ -149,7 +149,7 @@ export default function CreateConversationScreen() {
     };
 
     return (
-        <SafeAreaView style={styles.container} edges={['top']}>
+        <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Text style={styles.backButton}>← Назад</Text>
@@ -226,7 +226,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 15,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
         borderBottomWidth: 1,
         borderBottomColor: darkTheme.colors.border,
     },
@@ -236,7 +237,7 @@ const styles = StyleSheet.create({
     },
     title: {
         color: darkTheme.colors.text,
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: '600',
     },
     createButton: {
@@ -249,7 +250,7 @@ const styles = StyleSheet.create({
     },
     form: {
         flex: 1,
-        padding: 15,
+        padding: 12,
     },
     input: {
         backgroundColor: darkTheme.colors.card,

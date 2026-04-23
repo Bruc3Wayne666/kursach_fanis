@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { api } from '../../services/api';
+import { login, logout } from './authSlice';
 
 // В store/slices/messagesSlice.ts проверяем getChats
 export const getChats = createAsyncThunk(
@@ -80,6 +81,20 @@ const messagesSlice = createSlice({
     },
     extraReducers: (builder) => {
         builder
+            .addCase(login, (state) => {
+                state.chats = [];
+                state.activeChat = null;
+                state.messages = {};
+                state.loading = false;
+                state.error = null;
+            })
+            .addCase(logout, (state) => {
+                state.chats = [];
+                state.activeChat = null;
+                state.messages = {};
+                state.loading = false;
+                state.error = null;
+            })
             .addCase(getChats.pending, (state) => {
                 state.loading = true;
                 state.error = null;

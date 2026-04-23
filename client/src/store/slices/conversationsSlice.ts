@@ -1,6 +1,7 @@
 // store/slices/conversationsSlice.ts - УПРОЩЕННАЯ ВЕРСИЯ
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { api } from '../../services/api';
+import { login, logout } from './authSlice';
 
 export const leaveConversation = createAsyncThunk(
     'conversations/leaveConversation',
@@ -35,6 +36,16 @@ const conversationsSlice = createSlice({
     },
     extraReducers: (builder) => {
         builder
+            .addCase(login, (state) => {
+                state.conversations = [];
+                state.loading = false;
+                state.error = null;
+            })
+            .addCase(logout, (state) => {
+                state.conversations = [];
+                state.loading = false;
+                state.error = null;
+            })
             .addCase(leaveConversation.fulfilled, (state, action) => {
                 state.conversations = state.conversations.filter(
                     conv => conv.id !== action.payload.conversationId

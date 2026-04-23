@@ -9,7 +9,8 @@ import {
     ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
-    ScrollView
+    ScrollView,
+    Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
@@ -62,15 +63,15 @@ export default function LoginScreen({ navigation }: any) {
 
     const testConnection = async () => {
         try {
-            const response = await api.get('/health');
+            await api.get('/health');
             Alert.alert('✅ Сервер доступен', 'Соединение работает!');
-        } catch (error) {
+        } catch {
             Alert.alert('❌ Сервер недоступен', 'Проверьте IP адрес и порт');
         }
     };
 
     return (
-        <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'bottom']}>
             <KeyboardAvoidingView
                 style={styles.keyboardAvoidingView}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -81,7 +82,11 @@ export default function LoginScreen({ navigation }: any) {
                     keyboardShouldPersistTaps="handled"
                 >
                     <View style={styles.container}>
-                        <Text style={styles.title}>Вход</Text>
+                        <Image
+                            source={require('../assets/logo.png')}
+                            style={styles.logo}
+                            resizeMode="contain"
+                        />
 
                         <TextInput
                             style={styles.input}
@@ -122,7 +127,7 @@ export default function LoginScreen({ navigation }: any) {
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            style={[styles.button, { backgroundColor: 'green' }]}
+                            style={[styles.button, styles.secondaryButton]}
                             onPress={testConnection}
                         >
                             <Text style={styles.buttonText}>Проверить связь с сервером</Text>
@@ -151,25 +156,37 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         padding: 20,
-        minHeight: '100%', // Важно для ScrollView
+        minHeight: '100%',
+    },
+    logo: {
+        width: 192,
+        height: 192,
+        borderRadius: 24,
+        marginBottom: 16,
+    },
+    appName: {
+        color: darkTheme.colors.text,
+        fontSize: 26,
+        fontWeight: '700',
+        marginBottom: 8,
     },
     title: {
         color: '#fff',
         fontSize: 32,
         fontWeight: 'bold',
-        marginBottom: 40, // Увеличил отступ
+        marginBottom: 32,
     },
     input: {
         backgroundColor: '#1a1a1a',
         color: '#fff',
         padding: 15,
         borderRadius: 8,
-        marginBottom: 15, // Увеличил отступ
+        marginBottom: 15,
         borderWidth: 1,
         borderColor: '#404040',
         width: '100%',
         fontSize: 16,
-        minHeight: 50, // Минимальная высота
+        minHeight: 50,
     },
     button: {
         backgroundColor: '#6366f1',
@@ -178,8 +195,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginTop: 10,
         width: '100%',
-        minHeight: 50, // Минимальная высота
+        minHeight: 50,
         justifyContent: 'center',
+    },
+    secondaryButton: {
+        backgroundColor: 'green',
     },
     buttonText: {
         color: '#fff',

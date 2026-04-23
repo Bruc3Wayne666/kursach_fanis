@@ -234,7 +234,7 @@ export default function ProfileScreen({ navigation, route }: any) {
 
     if (loading) {
         return (
-            <SafeAreaView style={styles.centerContainer}>
+            <SafeAreaView style={styles.centerContainer} edges={['left', 'right', 'bottom']}>
                 <ActivityIndicator size="large" color={darkTheme.colors.primary} />
                 <Text style={styles.loadingText}>Загрузка профиля...</Text>
             </SafeAreaView>
@@ -242,7 +242,7 @@ export default function ProfileScreen({ navigation, route }: any) {
     }
 
     return (
-        <SafeAreaView style={styles.container} edges={['top']}>
+        <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
             <View style={styles.header}>
                 <Text style={styles.title}>
                     {isOwnProfile ? 'Профиль' : 'Профиль пользователя'}

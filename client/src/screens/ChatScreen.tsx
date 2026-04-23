@@ -16,6 +16,7 @@ import {
     ScrollView
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useSelector, useDispatch } from 'react-redux';
 import { useRoute, useNavigation, useIsFocused } from '@react-navigation/native';
 import { launchImageLibrary } from 'react-native-image-picker';
@@ -518,11 +519,11 @@ export default function ChatScreen() {
     }
 
     return (
-        <SafeAreaView style={styles.container} edges={['bottom']}>
+        <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
             {/* Шапка чата */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Text style={styles.backButton}>← Назад</Text>
+                <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                    <Ionicons name="chevron-back" size={24} color={darkTheme.colors.primary} />
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -655,7 +656,7 @@ export default function ChatScreen() {
                                 {uploadingImage ? (
                                     <ActivityIndicator size="small" color={darkTheme.colors.primary} />
                                 ) : (
-                                    <Text style={styles.attachButtonText}>📷</Text>
+                                    <Ionicons name="image-outline" size={20} color={darkTheme.colors.text} />
                                 )}
                             </TouchableOpacity>
 
@@ -667,7 +668,7 @@ export default function ChatScreen() {
                                 {recordingLoading ? (
                                     <ActivityIndicator size="small" color={darkTheme.colors.primary} />
                                 ) : (
-                                    <Text style={styles.attachButtonText}>🎤</Text>
+                                    <Ionicons name="mic-outline" size={20} color={darkTheme.colors.text} />
                                 )}
                             </TouchableOpacity>
 
@@ -699,7 +700,7 @@ export default function ChatScreen() {
                                 {sending ? (
                                     <ActivityIndicator size="small" color="#fff" />
                                 ) : (
-                                    <Text style={styles.sendButtonText}>➤</Text>
+                                    <Ionicons name="send" size={18} color="#fff" />
                                 )}
                             </TouchableOpacity>
                         </>
@@ -719,39 +720,43 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 15,
+        paddingHorizontal: 10,
+        paddingVertical: 8,
         borderBottomWidth: 1,
         borderBottomColor: darkTheme.colors.border,
     },
     backButton: {
-        color: darkTheme.colors.primary,
-        fontSize: 16,
+        width: 36,
+        height: 36,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     headerInfo: {
         flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
+        marginHorizontal: 6,
     },
     headerAvatar: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        marginRight: 12,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        marginRight: 10,
     },
     headerText: {
         flex: 1,
     },
     title: {
         color: darkTheme.colors.text,
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: '600',
     },
     subtitle: {
         color: darkTheme.colors.textSecondary,
-        fontSize: 12,
+        fontSize: 11,
     },
     placeholder: {
-        width: 60,
+        width: 36,
     },
     keyboardAvoidingView: {
         flex: 1,
@@ -793,15 +798,16 @@ const styles = StyleSheet.create({
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'flex-end',
-        padding: 15,
-        paddingBottom: Platform.OS === 'ios' ? 25 : 15,
+        paddingHorizontal: 8,
+        paddingTop: 8,
+        paddingBottom: Platform.OS === 'ios' ? 14 : 8,
         borderTopWidth: 1,
         borderTopColor: darkTheme.colors.border,
         backgroundColor: darkTheme.colors.background,
     },
     composerTools: {
-        paddingTop: 10,
-        paddingHorizontal: 15,
+        paddingTop: 4,
+        paddingHorizontal: 8,
         backgroundColor: darkTheme.colors.background,
     },
     aiActionsRow: {
@@ -838,45 +844,39 @@ const styles = StyleSheet.create({
         fontSize: 12,
     },
     attachButton: {
-        padding: 10,
-        marginRight: 10,
-        width: 40,
-        height: 40,
+        marginRight: 6,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: darkTheme.colors.card,
+        borderWidth: 1,
+        borderColor: darkTheme.colors.border,
         alignItems: 'center',
         justifyContent: 'center',
-    },
-    attachButtonText: {
-        fontSize: 20,
-        color: darkTheme.colors.text,
     },
     messageInput: {
         flex: 1,
         backgroundColor: darkTheme.colors.card,
         color: darkTheme.colors.text,
-        paddingHorizontal: 15,
-        paddingVertical: Platform.OS === 'ios' ? 12 : 8,
+        paddingHorizontal: 12,
+        paddingVertical: Platform.OS === 'ios' ? 10 : 8,
         borderRadius: 20,
         borderWidth: 1,
         borderColor: darkTheme.colors.border,
-        fontSize: 16,
+        fontSize: 15,
         maxHeight: 100,
     },
     sendButton: {
         backgroundColor: darkTheme.colors.primary,
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
         alignItems: 'center',
         justifyContent: 'center',
-        marginLeft: 10,
+        marginLeft: 6,
     },
     sendButtonDisabled: {
         opacity: 0.5,
-    },
-    sendButtonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: 'bold',
     },
     recordingBar: {
         flex: 1,

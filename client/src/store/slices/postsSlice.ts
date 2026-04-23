@@ -1,6 +1,7 @@
 // src/store/slices/postsSlice.ts - ОБНОВЛЕННАЯ ВЕРСИЯ
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { api } from '../../services/api';
+import { login, logout } from './authSlice';
 
 // Async actions
 export const fetchPosts = createAsyncThunk(
@@ -102,6 +103,18 @@ const postsSlice = createSlice({
     },
     extraReducers: (builder) => {
         builder
+            .addCase(login, (state) => {
+                state.posts = [];
+                state.userPosts = {};
+                state.loading = false;
+                state.error = null;
+            })
+            .addCase(logout, (state) => {
+                state.posts = [];
+                state.userPosts = {};
+                state.loading = false;
+                state.error = null;
+            })
             // Feed posts
             .addCase(fetchPosts.pending, (state) => {
                 state.loading = true;

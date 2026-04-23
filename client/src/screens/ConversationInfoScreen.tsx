@@ -371,7 +371,7 @@ export default function ConversationInfoScreen() {
 
     if (loading && !currentConversation) {
         return (
-            <SafeAreaView style={styles.centerContainer}>
+            <SafeAreaView style={styles.centerContainer} edges={['left', 'right', 'bottom']}>
                 <ActivityIndicator size="large" color={darkTheme.colors.primary} />
                 <Text style={styles.loadingText}>Загрузка беседы...</Text>
             </SafeAreaView>
@@ -380,14 +380,14 @@ export default function ConversationInfoScreen() {
 
     if (!currentConversation) {
         return (
-            <SafeAreaView style={styles.container}>
+            <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
                 <Text style={styles.errorText}>Беседа не найдена</Text>
             </SafeAreaView>
         );
     }
 
     return (
-        <SafeAreaView style={styles.container} edges={['top']}>
+        <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Text style={styles.backButton}>← Назад</Text>
@@ -534,7 +534,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 15,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
         borderBottomWidth: 1,
         borderBottomColor: darkTheme.colors.border,
     },
@@ -544,18 +545,18 @@ const styles = StyleSheet.create({
     },
     title: {
         color: darkTheme.colors.text,
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: '600',
     },
     placeholder: {
-        width: 60,
+        width: 48,
     },
     content: {
         flex: 1,
     },
     contentInner: {
-        padding: 15,
-        paddingBottom: 30,
+        padding: 12,
+        paddingBottom: 24,
         gap: 15,
     },
     errorText: {
@@ -596,7 +597,7 @@ const styles = StyleSheet.create({
     card: {
         backgroundColor: darkTheme.colors.card,
         borderRadius: 12,
-        padding: 16,
+        padding: 14,
     },
     sectionTitle: {
         color: darkTheme.colors.text,

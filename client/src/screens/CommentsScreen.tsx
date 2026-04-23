@@ -120,7 +120,7 @@ export default function CommentsScreen({ route, navigation }: CommentsScreenProp
 
     if (loading) {
         return (
-            <SafeAreaView style={styles.centerContainer}>
+            <SafeAreaView style={styles.centerContainer} edges={['left', 'right', 'bottom']}>
                 <ActivityIndicator size="large" color={darkTheme.colors.primary} />
                 <Text style={styles.loadingText}>Загрузка комментариев...</Text>
             </SafeAreaView>
@@ -128,7 +128,7 @@ export default function CommentsScreen({ route, navigation }: CommentsScreenProp
     }
 
     return (
-        <SafeAreaView style={styles.container} edges={['bottom']}>
+        <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
             {/* Шапка */}
             <View style={styles.header}>
                 <TouchableOpacity
